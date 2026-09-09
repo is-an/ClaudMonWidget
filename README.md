@@ -57,10 +57,9 @@ folder (undo [autostart](#start-automatically) first if you set it up).
 
 ## Run
 
-Double-click **`ClaudMonWidget.exe`**. No console window appears.
+Double-click **`start-hidden.vbs`**. No console window appears.
 
-`start-hidden.vbs` does the same thing without the executable, if you would
-rather not run a binary you did not compile. Or from a console:
+Or from a console:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
@@ -70,10 +69,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 `-ExecutionPolicy Bypass` applies to that one launch. It does not change your
 system policy.
 
-The exe is a 46KB launcher, not a repackaged widget: it starts `widget.ps1` from
-its own folder with no console window, and that is all it does. The widget stays
-plain PowerShell you can read and edit. See [Building](#building) to rebuild it
-yourself.
+No `.exe` ships with this repository. [`build.ps1`](#building) can compile a
+46KB launcher if you prefer one, but it is only a launcher — it needs
+`widget.ps1` beside it and does nothing on its own, so there is no standalone
+binary to hand around, and a committed one would only trip SmartScreen.
+
+The **folder** is portable, though: no installer, nothing in the registry, and
+`config.json` and `usage-cache.json` are written next to the scripts, so
+settings travel with it. Copy the folder anywhere, including a USB stick. The
+usage numbers still come from the Claude Code account on whatever machine it
+runs on, and the [autostart](#start-automatically) entries store an absolute
+path, so re-run `install-hook.ps1` after moving the folder.
 
 **Only one widget runs at a time.** Launching it again while one is up exits
 immediately and silently. That keeps widgets from stacking on screen with a
@@ -84,9 +90,10 @@ stale one on top.
 ### With Windows
 
 1. `Win+R` → `shell:startup` opens the Startup folder.
-2. Put a **shortcut** to `ClaudMonWidget.exe` in it.
+2. Put a **shortcut** to `start-hidden.vbs` in it.
 
-Delete the shortcut to undo.
+Delete the shortcut to undo. To give the shortcut a proper icon instead of the
+default script one, point its Change Icon at `icon.ico` in this folder.
 
 ### With Claude Code
 
@@ -360,9 +367,8 @@ Everything available is from an expired session window. Press `Sync now`, or run
 `/usage` once in Claude Code.
 
 **Script execution is blocked**
-`ClaudMonWidget.exe`, `start-hidden.vbs` and the commands above all apply
-`-ExecutionPolicy Bypass` to that launch only. If it is still blocked, it is
-likely an organisation policy.
+`start-hidden.vbs` and the commands above apply `-ExecutionPolicy Bypass` to
+that launch only. If it is still blocked, it is likely an organisation policy.
 
 ## Tests
 
@@ -382,16 +388,18 @@ select at once.
 
 ## Building
 
-`icon.ico` and `ClaudMonWidget.exe` are committed, so you only need this when
-the icon or the launcher changes:
-
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-It draws the icon with `System.Drawing`, packs the `.ico` by hand, and compiles
-the launcher with the C# compiler that ships with the .NET Framework on every
-Windows install. Nothing is downloaded.
+It draws `icon.ico` with `System.Drawing`, packs the `.ico` by hand, and
+compiles `ClaudMonWidget.exe` with the C# compiler that ships with the .NET
+Framework on every Windows install. Nothing is downloaded.
+
+`icon.ico` is committed. The exe is not, and is git-ignored: it only launches
+`widget.ps1` from its own folder, so it is not something to hand around on its
+own, and `start-hidden.vbs` already does that job without compiling anything.
+Build it if you want a double-clickable file with the icon on it.
 
 ## Writing your own skin
 

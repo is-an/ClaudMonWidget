@@ -2,13 +2,14 @@
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 #
-# Both outputs are committed, so this only needs running when the icon or the
-# launcher changes. It uses the C# compiler that ships with the .NET Framework
-# on every Windows install - nothing to download.
+# It uses the C# compiler that ships with the .NET Framework on every Windows
+# install - nothing to download.
 #
-# The exe is a launcher, not a repackaged widget: it starts widget.ps1 from its
-# own folder with no console window. The widget stays plain PowerShell you can
-# read and edit.
+# icon.ico is committed; the exe is not. The exe is a launcher, not a
+# self-contained program: it starts widget.ps1 from its own folder with no
+# console window, so it is useless on its own and shipping a binary in the repo
+# only earns SmartScreen warnings. Build it here if you want it. start-hidden.vbs
+# does the same job with no compilation at all.
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'

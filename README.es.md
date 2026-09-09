@@ -58,10 +58,9 @@ configuraste el [arranque automático](#arranque-automático), deshazlo primero)
 
 ## Ejecución
 
-Haz doble clic en **`ClaudMonWidget.exe`**. No aparece ninguna consola.
+Haz doble clic en **`start-hidden.vbs`**. No aparece ninguna consola.
 
-`start-hidden.vbs` hace lo mismo sin el ejecutable, si prefieres no correr un
-binario que no compilaste. O desde una consola:
+O desde una consola:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
@@ -71,10 +70,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 `-ExecutionPolicy Bypass` solo afecta a ese arranque. No cambia la directiva del
 sistema.
 
-El exe es un lanzador de 46KB, no el widget reempaquetado: inicia `widget.ps1`
-desde su propia carpeta sin consola, y nada más. El widget sigue siendo
-PowerShell plano que puedes leer y editar. Para regenerarlo, mira
-[Compilación](#compilación).
+El repositorio no incluye ningún `.exe`. Si lo prefieres,
+[`build.ps1`](#compilación) puede compilar un lanzador de 46KB, pero es solo un
+lanzador: necesita `widget.ps1` al lado y por sí mismo no hace nada, así que no
+hay un binario autónomo que repartir, y publicarlo solo provocaría avisos de
+SmartScreen.
+
+La **carpeta**, en cambio, sí es portátil: sin instalador, sin nada en el
+registro, y `config.json` y `usage-cache.json` se escriben junto a los scripts,
+así que la configuración viaja con ella. Cópiala a donde quieras, incluida una
+memoria USB. Los números de consumo siguen viniendo de la cuenta de Claude Code
+del equipo donde se ejecute, y las entradas de
+[arranque automático](#arranque-automático) guardan una ruta absoluta, así que
+vuelve a ejecutar `install-hook.ps1` después de mover la carpeta.
 
 **Solo se ejecuta un widget a la vez.** Si lanzas otro mientras uno está
 abierto, el segundo se cierra en silencio. Así se evita que se apilen widgets en
@@ -85,9 +93,11 @@ pantalla con uno viejo encima mostrando valores caducados.
 ### Con Windows
 
 1. `Win+R` → `shell:startup` abre la carpeta de Inicio.
-2. Pon ahí un **acceso directo** a `ClaudMonWidget.exe`.
+2. Pon ahí un **acceso directo** a `start-hidden.vbs`.
 
-Para deshacerlo, borra el acceso directo.
+Para deshacerlo, borra el acceso directo. Si no quieres el icono por defecto de
+los scripts, en Cambiar icono del acceso directo apunta a `icon.ico` de esta
+carpeta.
 
 ### Con Claude Code
 
@@ -369,9 +379,9 @@ Todo lo disponible pertenece a una ventana de sesión caducada. Pulsa `Sync now`
 o ejecuta `/usage` una vez en Claude Code.
 
 **Se bloquea la ejecución de scripts**
-`ClaudMonWidget.exe`, `start-hidden.vbs` y los comandos de arriba aplican
-`-ExecutionPolicy Bypass` solo a ese arranque. Si aun así se bloquea, es
-probable que sea una directiva de la organización.
+`start-hidden.vbs` y los comandos de arriba aplican `-ExecutionPolicy Bypass`
+solo a ese arranque. Si aun así se bloquea, es probable que sea una directiva de
+la organización.
 
 ## Pruebas
 
@@ -391,16 +401,18 @@ opciones de opacidad se seleccionan todas a la vez.
 
 ## Compilación
 
-`icon.ico` y `ClaudMonWidget.exe` están en el repositorio, así que esto solo
-hace falta al cambiar el icono o el lanzador:
-
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-Dibuja el icono con `System.Drawing`, arma el `.ico` a mano y compila el
-lanzador con el compilador de C# que viene con el .NET Framework en cualquier
-Windows. No descarga nada.
+Dibuja `icon.ico` con `System.Drawing`, arma el `.ico` a mano y compila
+`ClaudMonWidget.exe` con el compilador de C# que viene con el .NET Framework en
+cualquier Windows. No descarga nada.
+
+`icon.ico` está en el repositorio. El exe no, y está en el `.gitignore`: solo
+lanza `widget.ps1` desde su propia carpeta, así que no es algo para repartir por
+separado, y `start-hidden.vbs` ya hace ese trabajo sin compilar nada. Compílalo
+si quieres un archivo con icono al que hacer doble clic.
 
 ## Crear tu propio skin
 

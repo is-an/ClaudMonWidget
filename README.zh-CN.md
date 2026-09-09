@@ -55,10 +55,9 @@ cd ClaudMonWidget
 
 ## 运行
 
-双击 **`ClaudMonWidget.exe`**。不会弹出控制台窗口。
+双击 **`start-hidden.vbs`**。不会弹出控制台窗口。
 
-如果不想运行自己没编译过的二进制文件，`start-hidden.vbs` 做的是同一件事。或者从
-控制台运行：
+或者从控制台运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
@@ -67,9 +66,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 
 `-ExecutionPolicy Bypass` 只对这一次启动生效，不会改动系统策略。
 
-这个 exe 是一个 46KB 的启动器，不是把小组件重新打包。它只做一件事：无控制台地
-启动同目录下的 `widget.ps1`。小组件本体仍然是你可以阅读和修改的纯 PowerShell。
-想自己重新生成，见[构建](#构建)。
+仓库里不含 `.exe`。需要的话可以用 [`build.ps1`](#构建) 编出一个 46KB 的启动器，
+但它就只是启动器 —— 旁边必须有 `widget.ps1`，单独拿走什么也做不了。它不是可以
+单独分发的二进制文件，提交上去也只会招来 SmartScreen 警告。
+
+不过**文件夹本身是便携的**：没有安装程序，不写注册表，`config.json` 和
+`usage-cache.json` 都写在脚本旁边，所以配置会跟着走。复制到任何地方都行，包括
+U 盘。但用量数字读的是运行所在电脑的 Claude Code 账号，而且[自动运行](#开机自动运行)
+的条目保存的是绝对路径，所以移动文件夹之后要重新执行 `install-hook.ps1`。
 
 小组件**同时只运行一个**。已经开着时再启动，第二个会静默退出。这样可以避免多个
 小组件在屏幕上叠在一起，而最上面那个显示的是过期数值。
@@ -79,9 +83,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 ### 随 Windows 启动
 
 1. `Win+R` → `shell:startup` 打开"启动"文件夹。
-2. 把 `ClaudMonWidget.exe` 的**快捷方式**放进去。
+2. 把 `start-hidden.vbs` 的**快捷方式**放进去。
 
-删除该快捷方式即可解除。
+删除该快捷方式即可解除。如果不喜欢脚本的默认图标，在快捷方式属性里"更改图标"，
+指向本文件夹的 `icon.ico` 即可。
 
 ### 随 Claude Code 启动
 
@@ -339,8 +344,8 @@ Claude Code 让令牌刷新。
 说明手头只有已结束窗口的数值。按 `Sync now`，或在 Claude Code 里执行一次 `/usage`。
 
 **脚本执行被拦截**
-`ClaudMonWidget.exe`、`start-hidden.vbs` 以及上面的命令都只对本次启动应用
-`-ExecutionPolicy Bypass`。如果仍被拦截，可能是组织策略。
+`start-hidden.vbs` 以及上面的命令都只对本次启动应用 `-ExecutionPolicy Bypass`。
+如果仍被拦截，可能是组织策略。
 
 ## 测试
 
@@ -358,14 +363,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File test-menu.ps1
 
 ## 构建
 
-`icon.ico` 和 `ClaudMonWidget.exe` 都已提交，只有在修改图标或启动器时才需要这一步：
-
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-它用 `System.Drawing` 画出图标，手工拼装 `.ico`，再用 Windows 自带的 .NET Framework
-C# 编译器编译启动器。不下载任何东西。
+它用 `System.Drawing` 画出 `icon.ico`，手工拼装 `.ico`，再用 Windows 自带的
+.NET Framework C# 编译器编译 `ClaudMonWidget.exe`。不下载任何东西。
+
+`icon.ico` 已提交；exe 没有，而且写进了 gitignore —— 它只是启动同目录下的
+`widget.ps1`，不适合单独拿走，而 `start-hidden.vbs` 无需编译就能做同样的事。
+只有想要一个带图标、可双击的文件时才需要构建它。
 
 ## 自己写皮肤
 

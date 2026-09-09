@@ -2,5 +2,10 @@
 config.json
 usage-cache.json
 
+# Built by build.ps1, not shipped. It is a launcher that needs widget.ps1 beside
+# it, so it is not a standalone download, and a committed binary only earns
+# SmartScreen warnings. Anyone who wants it can build it in one command.
+ClaudMonWidget.exe
+
 # Backups install-hook.ps1 leaves next to settings.json if you point it here.
 *.bak-*

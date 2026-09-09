@@ -56,10 +56,9 @@ cd ClaudMonWidget
 
 ## 실행
 
-**`ClaudMonWidget.exe`**를 더블클릭한다. 콘솔 창이 뜨지 않는다.
+**`start-hidden.vbs`**를 더블클릭한다. 콘솔 창이 뜨지 않는다.
 
-직접 컴파일하지 않은 바이너리를 돌리기 싫다면 `start-hidden.vbs`가 같은 일을
-한다. 콘솔에서 직접 띄우려면:
+콘솔에서 직접 띄우려면:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
@@ -68,9 +67,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 
 `-ExecutionPolicy Bypass`는 이 실행에만 적용된다. 시스템 정책을 바꾸지 않는다.
 
-exe는 46KB짜리 런처지 위젯을 다시 포장한 것이 아니다. 자기 폴더의 `widget.ps1`을
-콘솔 창 없이 실행하는 것이 전부다. 위젯은 그대로 읽고 고칠 수 있는 PowerShell로
-남는다. 직접 다시 만들려면 [빌드](#빌드)를 참고할 것.
+저장소에 `.exe`는 들어 있지 않다. 원하면 [`build.ps1`](#빌드)로 46KB짜리 런처를
+만들 수 있지만 말 그대로 런처다 — 옆에 `widget.ps1`이 있어야 하고 혼자서는 아무
+일도 못 한다. 단독으로 건네줄 바이너리가 아니고, 커밋해 봐야 SmartScreen 경고만
+붙는다.
+
+대신 **폴더 자체는 포터블**이다. 인스톨러도 레지스트리 등록도 없고,
+`config.json`과 `usage-cache.json`을 스크립트 옆에 쓰므로 설정이 폴더를 따라간다.
+USB를 포함해 어디로 복사해도 된다. 다만 사용량 숫자는 실행하는 PC의 Claude Code
+계정에서 읽고, [자동 실행](#자동-실행) 항목은 절대 경로를 저장하므로 폴더를 옮긴
+뒤에는 `install-hook.ps1`을 다시 실행해야 한다.
 
 위젯은 **한 번에 하나만** 뜬다. 이미 떠 있는데 또 실행하면 두 번째는 조용히
 종료된다. 화면에 위젯이 겹쳐 쌓이고 그중 오래된 것이 낡은 값을 보여주는 일을
@@ -81,9 +87,10 @@ exe는 46KB짜리 런처지 위젯을 다시 포장한 것이 아니다. 자기 
 ### Windows 시작 시
 
 1. `Win+R` → `shell:startup` → 시작프로그램 폴더가 열린다.
-2. `ClaudMonWidget.exe`의 **바로가기**를 그 폴더에 넣는다.
+2. `start-hidden.vbs`의 **바로가기**를 그 폴더에 넣는다.
 
-해제하려면 그 바로가기를 지운다.
+해제하려면 그 바로가기를 지운다. 스크립트 기본 아이콘이 보기 싫으면 바로가기
+속성의 아이콘 변경에서 이 폴더의 `icon.ico`를 지정하면 된다.
 
 ### Claude Code 실행 시
 
@@ -349,9 +356,8 @@ Claude Code가 `/usage`를 그릴 때 호출하는 바로 그 엔드포인트다
 `/usage`를 한 번 친다.
 
 **스크립트 실행이 차단된다**
-`ClaudMonWidget.exe`, `start-hidden.vbs`, 위 명령들은 모두
-`-ExecutionPolicy Bypass`를 이 실행에만 적용한다. 그래도 막히면 조직 정책일 수
-있다.
+`start-hidden.vbs`와 위 명령들은 `-ExecutionPolicy Bypass`를 이 실행에만
+적용한다. 그래도 막히면 조직 정책일 수 있다.
 
 ## 테스트
 
@@ -370,15 +376,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File test-menu.ps1
 
 ## 빌드
 
-`icon.ico`와 `ClaudMonWidget.exe`는 커밋되어 있다. 아이콘이나 런처를 고칠 때만
-필요하다.
-
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-`System.Drawing`으로 아이콘을 그리고, `.ico`를 직접 조립하고, Windows에 기본
-포함된 .NET Framework의 C# 컴파일러로 런처를 컴파일한다. 내려받는 것은 없다.
+`System.Drawing`으로 `icon.ico`를 그리고, `.ico`를 직접 조립하고, Windows에 기본
+포함된 .NET Framework의 C# 컴파일러로 `ClaudMonWidget.exe`를 컴파일한다. 내려받는
+것은 없다.
+
+`icon.ico`는 커밋되어 있다. exe는 커밋하지 않고 gitignore에 넣었다 — 자기 폴더의
+`widget.ps1`을 띄우는 것이 전부라 혼자 돌아다닐 물건이 아니고, `start-hidden.vbs`가
+컴파일 없이 같은 일을 한다. 아이콘 붙은 더블클릭 파일이 필요하면 직접 만들면 된다.
 
 ## 스킨 직접 만들기
 

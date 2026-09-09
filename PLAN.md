@@ -154,11 +154,17 @@ ClaudMonWidget/
     detail.xaml
   test-usage.ps1    # 집계·계정·소스 우선순위 검증
   test-menu.ps1     # 메뉴 라디오 동작 검증
-  start-hidden.vbs  # 콘솔 창 깜빡임 없이 실행
+  start-hidden.vbs  # 콘솔 창 깜빡임 없이 실행 (기본 실행 방법)
   install-hook.ps1  # Claude Code SessionStart 훅 설치/해제
+  build.ps1         # icon.ico 생성 + 런처 exe 컴파일
+  icon.ico          # 바로가기 아이콘용
   config.json       # 첫 종료 시 생성 (gitignore)
   usage-cache.json  # 마지막 라이브 응답 (gitignore)
 ```
+
+**exe는 저장소에 넣지 않는다.** `build.ps1`이 만들 수는 있지만 그것은 런처일 뿐 — 옆에 `widget.ps1`이 있어야 하고 혼자서는 아무 일도 못 한다. 포터블한 단위는 exe가 아니라 폴더다. 단독 실행이 안 되는 바이너리를 커밋해 봐야 SmartScreen 경고만 얻고, `start-hidden.vbs`가 컴파일 없이 같은 일을 한다.
+
+폴더 자체는 포터블이다 — 인스톨러도 레지스트리도 없고 `config.json`이 스크립트 옆에 쓰인다. 예외는 절대 경로를 저장하는 자동 실행 항목(훅, 시작프로그램 바로가기)뿐이라, 폴더를 옮기면 다시 걸어야 한다.
 
 위젯은 명명된 뮤텍스로 단일 인스턴스를 강제한다. Claude Code 훅이 세션마다 뜨기 때문에, 없으면 하루치 작업이 위젯 더미를 남기고 그중 맨 위가 낡은 값을 보여줄 수 있다. `test-menu.ps1`이 dot-source할 때는 잠금을 잡지 않는다 — 안 그러면 위젯이 떠 있을 때 테스트가 아무것도 안 하고 통과한 척한다.
 
@@ -205,7 +211,7 @@ ASCII만 쓴다. PowerShell 5.1은 BOM 없는 스크립트를 ANSI로 읽어서 
 `/api/oauth/usage` 라이브 호출(5분 주기 + `Sync now`), `detail` 스킨에 사용자명·구독 배지, 출처 표시. 우클릭 메뉴의 스킨·불투명도를 라디오로 고침(`test-menu.ps1`로 검증).
 
 **5단계 — 배포 준비 · 완료**
-스킨 자동 높이(잘림 제거), 7일 막대를 붙인 스킨 변형 추가, 단일 인스턴스 잠금, Claude Code `SessionStart` 훅 설치 스크립트, `.gitignore`, README 전면 개편(설치·실행·자동 실행·연동 방식·문제 해결).
+스킨 자동 높이(잘림 제거), 7일 막대를 붙인 스킨 변형 추가, 단일 인스턴스 잠금, Claude Code `SessionStart` 훅 설치 스크립트, `.gitignore`, 아이콘 생성 + 런처 빌드 스크립트, README 5개 언어(영어·한국어·일본어·중국어 간체·스페인어).
 
 이 단계에서 잡은 버그 둘이 남길 만하다.
 

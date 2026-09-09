@@ -56,10 +56,9 @@ ZIP をどこかに展開しても構いません。場所は問いませんが�
 
 ## 起動
 
-**`ClaudMonWidget.exe`** をダブルクリックします。コンソール ウィンドウは出ません。
+**`start-hidden.vbs`** をダブルクリックします。コンソール ウィンドウは出ません。
 
-自分でコンパイルしていないバイナリを実行したくない場合は、`start-hidden.vbs` が
-同じことをします。コンソールから直接起動する場合:
+コンソールから直接起動する場合:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
@@ -69,10 +68,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 `-ExecutionPolicy Bypass` はその起動にだけ効きます。システムのポリシーは変えま
 せん。
 
-exe は 46KB のランチャーであって、ウィジェットを再パッケージしたものではありま
-せん。自分のフォルダーの `widget.ps1` をコンソールなしで起動する、それだけです。
-ウィジェット本体は読んで編集できる素の PowerShell のままです。自分で作り直すには
-[ビルド](#ビルド)を参照してください。
+リポジトリに `.exe` は含まれていません。欲しければ [`build.ps1`](#ビルド) で
+46KB のランチャーを作れますが、あくまでランチャーです — 隣に `widget.ps1` が必要
+で、単体では何もしません。単独で配れるバイナリではありませんし、コミットしても
+SmartScreen の警告が付くだけです。
+
+一方で**フォルダーそのものはポータブル**です。インストーラーもレジストリ登録も
+なく、`config.json` と `usage-cache.json` はスクリプトの隣に書かれるので設定も
+一緒に移動します。USB を含めどこへコピーしても構いません。ただし使用量の数値は
+実行するその PC の Claude Code アカウントから読み、[自動起動](#自動起動)の項目は
+絶対パスを保存するため、フォルダーを移したら `install-hook.ps1` を実行し直して
+ください。
 
 ウィジェットは**同時に 1 つだけ**動きます。すでに起動しているときに再度実行する
 と、2 つ目は何も言わずに終了します。ウィジェットが画面に積み重なり、その一番上が
@@ -83,9 +89,11 @@ exe は 46KB のランチャーであって、ウィジェットを再パッケ�
 ### Windows 起動時
 
 1. `Win+R` → `shell:startup` でスタートアップ フォルダーが開きます。
-2. `ClaudMonWidget.exe` の**ショートカット**をそこに置きます。
+2. `start-hidden.vbs` の**ショートカット**をそこに置きます。
 
-解除はそのショートカットを削除するだけです。
+解除はそのショートカットを削除するだけです。スクリプトの既定アイコンが気になる
+場合は、ショートカットのアイコンの変更でこのフォルダーの `icon.ico` を指定して
+ください。
 
 ### Claude Code 起動時
 
@@ -358,9 +366,8 @@ OAuth フローの仕事で、ウィジェットはそれを真似しません�
 Claude Code で `/usage` を一度実行してください。
 
 **スクリプトの実行がブロックされる**
-`ClaudMonWidget.exe`、`start-hidden.vbs`、上のコマンドはいずれも
-`-ExecutionPolicy Bypass` をその起動にだけ適用します。それでも止まる場合は組織の
-ポリシーの可能性があります。
+`start-hidden.vbs` と上のコマンドは `-ExecutionPolicy Bypass` をその起動にだけ
+適用します。それでも止まる場合は組織のポリシーの可能性があります。
 
 ## テスト
 
@@ -379,16 +386,18 @@ WPF の `MenuItem` にはラジオ モードがなく、放っておくと不透
 
 ## ビルド
 
-`icon.ico` と `ClaudMonWidget.exe` はコミット済みなので、アイコンかランチャーを
-変えるときだけ必要です。
-
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
 ```
 
-`System.Drawing` でアイコンを描き、`.ico` を手で組み立て、Windows に標準で入って
-いる .NET Framework の C# コンパイラーでランチャーをコンパイルします。ダウンロード
-するものはありません。
+`System.Drawing` で `icon.ico` を描き、`.ico` を手で組み立て、Windows に標準で
+入っている .NET Framework の C# コンパイラーで `ClaudMonWidget.exe` をコンパイル
+します。ダウンロードするものはありません。
+
+`icon.ico` はコミット済みです。exe はコミットせず gitignore に入れています —
+自分のフォルダーの `widget.ps1` を起動するだけのもので単独で持ち歩く類ではなく、
+`start-hidden.vbs` がコンパイルなしで同じ仕事をします。アイコン付きのダブル
+クリックできるファイルが欲しいときだけ作ってください。
 
 ## スキンを自作する
 
