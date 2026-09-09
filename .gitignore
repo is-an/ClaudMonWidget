@@ -1,0 +1,6 @@
+# Written at runtime, specific to one machine and one account.
+config.json
+usage-cache.json
+
+# Backups install-hook.ps1 leaves next to settings.json if you point it here.
+*.bak-*

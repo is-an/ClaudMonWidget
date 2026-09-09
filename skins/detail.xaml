@@ -1,0 +1,67 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ClaudMon" Width="300" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize">
+
+    <Border x:Name="Root" CornerRadius="12" Margin="6"
+            Background="#BF101215" BorderBrush="#2EFFFFFF" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="2" Opacity="0.6"/>
+        </Border.Effect>
+
+        <StackPanel Margin="15,11,15,12">
+
+            <!-- account: who this is and which subscription -->
+            <Grid Margin="0,0,0,9">
+                <TextBlock x:Name="TxtUser" Text="" Foreground="#E3E3E3"
+                           FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis" Margin="0,0,64,0"/>
+                <Border x:Name="PlanChip" CornerRadius="4" Background="#2A9AA0A6"
+                        Padding="6,1,6,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtPlan" Text="--" Foreground="#D9C9A0"
+                               FontFamily="Segoe UI" FontSize="10" FontWeight="SemiBold"/>
+                </Border>
+            </Grid>
+            <Border Height="1" Background="#1AFFFFFF" Margin="0,0,0,9"/>
+
+            <!-- 5-hour session window -->
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#4ADE80"
+                             VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="5시간 세션" Foreground="#9AA0A6"
+                               FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock x:Name="TxtReset" Text="" Foreground="#C8C8C8"
+                           FontFamily="Segoe UI" FontSize="11" HorizontalAlignment="Right"/>
+            </Grid>
+
+            <TextBlock x:Name="TxtMain" Text="--" Foreground="#FFFFFF"
+                       FontFamily="Segoe UI" FontSize="26" FontWeight="SemiBold"
+                       Margin="0,1,0,0"/>
+
+            <Grid Margin="0,4,0,0">
+                <Border x:Name="BarTrack" Height="5" CornerRadius="3" Background="#33FFFFFF"/>
+                <Border x:Name="BarFill" Height="5" CornerRadius="3" Width="0"
+                        Background="#4ADE80" HorizontalAlignment="Left"/>
+            </Grid>
+
+            <!-- 7-day window -->
+            <Grid Margin="0,11,0,0">
+                <TextBlock Text="7일" Foreground="#9AA0A6" FontFamily="Segoe UI" FontSize="11"/>
+                <TextBlock x:Name="TxtWeek" Text="--" Foreground="#D5D5D5"
+                           FontFamily="Segoe UI" FontSize="11" HorizontalAlignment="Right"/>
+            </Grid>
+            <Grid Margin="0,4,0,0">
+                <Border x:Name="WeekTrack" Height="4" CornerRadius="2" Background="#26FFFFFF"/>
+                <Border x:Name="WeekFill" Height="4" CornerRadius="2" Width="0"
+                        Background="#7DA9F5" HorizontalAlignment="Left"/>
+            </Grid>
+
+            <!-- our own tally, always current even when the cached % is not -->
+            <TextBlock x:Name="TxtSub" Text="" Foreground="#8A9096"
+                       FontFamily="Segoe UI" FontSize="11" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Border>
+</Window>
