@@ -6,12 +6,16 @@ Un widget de Windows translúcido y siempre visible que muestra tu consumo de
 Claude Code.
 
 ```
-┌──────────────────────────────────┐
-│  ● 54%                   2h 57m  │
-│  ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│  6%                       6d 4h  │
-│  ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-└──────────────────────────────────┘
+┌─────────────────────────────────┐
+│ ANIN                      [Pro] │
+│ ─────────────────────────────── │
+│ ● Sesión de 5 horas      2h 57m │
+│ 54%                             │
+│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
+│ 6%                        6d 4h │
+│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│ 807.1k tok / 399 req / live 2m  │
+└─────────────────────────────────┘
 ```
 
 No hay nada que instalar: funciona con el PowerShell 5.1 y el WPF que vienen con
@@ -92,6 +96,22 @@ El predeterminado es `border2`.
 | `border1` | 270 | Píldora redondeada con la barra de 5 horas |
 | `border2` | 270 | Píldora redondeada con ambas barras |
 | `detail` | 300 | Nombre de cuenta e insignia de plan, ambas barras, tokens y peticiones, origen del dato |
+
+```
+simple1            simple2
+  ● 54%              ● 54%  │  6%
+  2h 57m             2h 57m │  6d 4h
+
+border1                     border2
+┌──────────────────────┐    ┌──────────────────────┐
+│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
+│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
+└──────────────────────┘    │ 6%             6d 4h │
+                            │ ▓░░░░░░░░░░░░░░░░░░  │
+                            └──────────────────────┘
+```
+
+`detail` es el de arriba del todo en esta página.
 
 Todas las filas siguen la misma regla: porcentaje a la izquierda, tiempo
 restante a la derecha, en unidades acordes a la escala (`3h 04m`, `6d 5h`). La

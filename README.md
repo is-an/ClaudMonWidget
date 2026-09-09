@@ -5,12 +5,16 @@
 A translucent, always-on-top Windows widget showing your Claude Code usage.
 
 ```
-┌──────────────────────────────────┐
-│  ● 54%                   2h 57m  │
-│  ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│  6%                       6d 4h  │
-│  ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-└──────────────────────────────────┘
+┌─────────────────────────────────┐
+│ ANIN                      [Pro] │
+│ ─────────────────────────────── │
+│ ● 5-hour session         2h 57m │
+│ 54%                             │
+│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
+│ 6%                        6d 4h │
+│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│ 807.1k tok / 399 req / live 2m  │
+└─────────────────────────────────┘
 ```
 
 Nothing to install: it runs on the PowerShell 5.1 and WPF that ship with
@@ -91,6 +95,22 @@ A trailing `1` shows the 5-hour session only; `2` adds the 7-day window.
 | `border1` | 270 | Rounded pill with the 5-hour bar |
 | `border2` | 270 | Rounded pill with both bars |
 | `detail` | 300 | Account name and plan badge, both bars, token and request counts, data source |
+
+```
+simple1            simple2
+  ● 54%              ● 54%  │  6%
+  2h 57m             2h 57m │  6d 4h
+
+border1                     border2
+┌──────────────────────┐    ┌──────────────────────┐
+│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
+│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
+└──────────────────────┘    │ 6%             6d 4h │
+                            │ ▓░░░░░░░░░░░░░░░░░░  │
+                            └──────────────────────┘
+```
+
+`detail` is the one at the top of this page.
 
 Every row reads the same way: percentage on the left, time remaining on the
 right, in units that match the scale (`3h 04m`, `6d 5h`). Height follows the
