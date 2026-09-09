@@ -90,8 +90,14 @@ Anthropic API를 호출하지 않는다. Claude Code가 이미 로컬에 모든 
 
 | 스킨 | 크기 | 보여주는 것 |
 |---|---|---|
-| `simple` | 150 | 배경 없이 숫자만. 그림자로 가독성 확보 |
-| `border` | 270 | 둥근 알약 + 5시간·7일 두 막대 + 리셋 카운트다운 |
+뒤에 `1`이 붙은 것은 5시간 세션만, `2`는 7일까지 같이 보여준다. 기본값 `border2`.
+
+| 스킨 | 폭 | 보여주는 것 |
+|---|---|---|
+| `simple1` | 150 | 배경 없이 5시간 숫자만. 그림자로 가독성 확보 |
+| `simple2` | 250 | 배경 없이 2열. 왼쪽 5시간, 오른쪽 7일. 두 열 모두 % 위, 남은 시간 아래 |
+| `border1` | 270 | 둥근 알약 + 5시간 막대 + 리셋 카운트다운 |
+| `border2` | 270 | 위에 7일 막대 추가 |
 | `detail` | 300 | 사용자명 + 구독 배지, 5시간·7일 두 막대, 토큰·요청 수, 데이터 출처 |
 
 높이는 `SizeToContent="Height"`로 내용이 정한다. 고정 높이는 글꼴 배율이 다른 환경에서 아랫줄을 잘라먹는다 — 실제로 `detail`에서 한 번 잘렸다. 그래서 첫 실행 시 우하단 배치도 `ContentRendered`까지 미룬다. 그때가 되어야 실제 높이를 알 수 있다.
@@ -99,9 +105,11 @@ Anthropic API를 호출하지 않는다. Claude Code가 이미 로컬에 모든 
 공통 요소:
 - 좌상단 점: 초록(여유) / 노랑(70% 초과) / 빨강(90% 초과) / 회색(값 없음)
 - 큰 숫자: 5시간 사용률 %. 캐시가 만료됐으면 대신 자체 집계 토큰 수
-- 우상단: 리셋까지 남은 시간, 모르면 `--`
+- 리셋까지 남은 시간, 모르면 `--`. 단위는 크기에 맞춰 바뀐다 — 5시간 창은 `3h 04m`, 7일 창은 `6d 5h`. `149h 05m`은 머릿속에 안 들어온다
 
-스킨은 호스트와 **이름으로만** 맞물린다. `widget.ps1`은 `Dot`, `TxtMain`, `TxtSub`, `TxtReset`, `TxtWeek`, `TxtUser`, `TxtPlan`, `BarTrack`, `BarFill`, `WeekTrack`, `WeekFill`을 `FindName`으로 찾고, 없으면 그냥 건너뛴다. 그래서 새 스킨은 XAML 한 파일만 추가하면 되고 호스트는 건드릴 일이 없다.
+스킨은 호스트와 **이름으로만** 맞물린다. `widget.ps1`은 `Dot`, `TxtMain`, `TxtSub`, `TxtReset`, `TxtWeek`, `TxtUser`, `TxtPlan`, `BarTrack`, `BarFill`, `WeekTrack`, `WeekFill`을 `FindName`으로 찾고, 없으면 그냥 건너뛴다. 5시간 전용 스킨은 `TxtWeek`·`WeekFill`을 안 넣기만 하면 되고, 호스트에는 조건 분기가 하나도 없다. 스킨 다섯 개가 XAML 다섯 파일과 `$Skins` 배열 한 줄로 끝나는 이유다.
+
+`config.json`이 없는 스킨 이름을 가리키면 기본 스킨으로 되돌아간다. 스킨 이름을 바꿔도 예전 설정 파일 때문에 위젯이 시작을 거부하지 않는다.
 
 인터랙션:
 - 드래그로 이동, 위치는 `config.json`에 저장
@@ -141,8 +149,8 @@ ClaudMonWidget/
   usage.ps1         # 읽기와 집계, 라이브 동기화. UI 없음
   widget.ps1        # 진입점: 창 생성, 타이머 둘, 메뉴, 설정 저장
   skins/
-    simple.xaml
-    border.xaml
+    simple1.xaml    border1.xaml
+    simple2.xaml    border2.xaml
     detail.xaml
   test-usage.ps1    # 집계·계정·소스 우선순위 검증
   test-menu.ps1     # 메뉴 라디오 동작 검증
@@ -197,7 +205,7 @@ ASCII만 쓴다. PowerShell 5.1은 BOM 없는 스크립트를 ANSI로 읽어서 
 `/api/oauth/usage` 라이브 호출(5분 주기 + `Sync now`), `detail` 스킨에 사용자명·구독 배지, 출처 표시. 우클릭 메뉴의 스킨·불투명도를 라디오로 고침(`test-menu.ps1`로 검증).
 
 **5단계 — 배포 준비 · 완료**
-스킨 자동 높이(잘림 제거), `border`에 7일 막대 추가, 단일 인스턴스 잠금, Claude Code `SessionStart` 훅 설치 스크립트, `.gitignore`, README 전면 개편(설치·실행·자동 실행·연동 방식·문제 해결).
+스킨 자동 높이(잘림 제거), 7일 막대를 붙인 스킨 변형 추가, 단일 인스턴스 잠금, Claude Code `SessionStart` 훅 설치 스크립트, `.gitignore`, README 전면 개편(설치·실행·자동 실행·연동 방식·문제 해결).
 
 이 단계에서 잡은 버그 둘이 남길 만하다.
 

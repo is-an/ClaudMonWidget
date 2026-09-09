@@ -35,10 +35,12 @@
                         Background="#4ADE80" HorizontalAlignment="Left"/>
             </Grid>
 
-            <!-- 7-day window -->
+            <!-- 7-day window, laid out like the 5-hour row above it: the
+                 percentage on the left, time left on the right. -->
             <Grid Margin="0,9,0,0">
-                <TextBlock Text="7일" Foreground="#9AA0A6" FontFamily="Segoe UI" FontSize="11"/>
                 <TextBlock x:Name="TxtWeek" Text="--" Foreground="#D5D5D5"
+                           FontFamily="Segoe UI" FontSize="11"/>
+                <TextBlock x:Name="TxtWeekReset" Text="--" Foreground="#9AA0A6"
                            FontFamily="Segoe UI" FontSize="11" HorizontalAlignment="Right"/>
             </Grid>
             <Grid Margin="0,4,0,0">

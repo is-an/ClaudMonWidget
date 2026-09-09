@@ -9,6 +9,10 @@
 #
 # Run:  powershell -File test-menu.ps1
 
+# Without this an error while evaluating a Check argument kills that one line
+# and lets the run finish with "all checks passed" having silently skipped it.
+$ErrorActionPreference = 'Stop'
+
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 . (Join-Path $PSScriptRoot 'widget.ps1')
 

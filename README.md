@@ -1,102 +1,113 @@
 # ClaudMonWidget
 
-Claude Code 토큰 사용량을 보여주는 Windows 반투명 위젯. 항상 화면 위에 뜬다.
+**English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
+
+A translucent, always-on-top Windows widget showing your Claude Code usage.
 
 ```
 ┌──────────────────────────────────┐
-│  ● 36%                   4h 43m  │
+│  ● 54%                   2h 57m  │
 │  ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│  7일                         4%  │
+│  6%                       6d 4h  │
 │  ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
 └──────────────────────────────────┘
 ```
 
-설치할 런타임이 없다. Windows에 기본으로 들어 있는 PowerShell 5.1 + WPF만 쓴다.
-`.exe`도, `npm install`도, 별도 로그인도 없다 — Claude Code가 이미 저장해 둔
-인증 토큰을 그대로 쓴다.
+Nothing to install. It runs on the PowerShell 5.1 and WPF that ship with
+Windows. No `npm install`, no separate sign-in — it reuses the credentials
+Claude Code already stored.
 
 ---
 
-## 목차
+## Contents
 
-- [설치](#설치)
-- [실행](#실행)
-- [자동 실행](#자동-실행)
-  - [Windows 시작 시](#windows-시작-시)
-  - [Claude Code 실행 시](#claude-code-실행-시)
-- [조작](#조작)
-- [스킨](#스킨)
-- [연동 방식](#연동-방식)
-- [설정](#설정)
-- [문제 해결](#문제-해결)
-- [테스트](#테스트)
-- [스킨 직접 만들기](#스킨-직접-만들기)
-- [알려진 제약](#알려진-제약)
+- [Install](#install)
+- [Run](#run)
+- [Start automatically](#start-automatically)
+  - [With Windows](#with-windows)
+  - [With Claude Code](#with-claude-code)
+- [Controls](#controls)
+- [Skins](#skins)
+- [How it gets the numbers](#how-it-gets-the-numbers)
+- [Settings](#settings)
+- [Troubleshooting](#troubleshooting)
+- [Tests](#tests)
+- [Building](#building)
+- [Writing your own skin](#writing-your-own-skin)
+- [Known limits](#known-limits)
 
 ---
 
-## 설치
+## Install
 
-Windows 10/11 + Claude Code가 설치되어 로그인된 상태면 준비 끝이다.
+Windows 10/11 with Claude Code installed and signed in is the whole
+prerequisite.
 
 ```powershell
-git clone https://github.com/<your-account>/ClaudMonWidget.git
+git clone https://github.com/is-an/ClaudMonWidget.git
 cd ClaudMonWidget
 ```
 
-또는 ZIP으로 받아 아무 폴더에나 풀어도 된다. 폴더 위치는 상관없지만, 위젯이
-`config.json`과 `usage-cache.json`을 그 폴더에 쓰므로 쓰기 권한이 있어야 한다.
-`C:\Program Files` 아래는 피할 것.
+A ZIP unpacked anywhere works too. The location does not matter, but the widget
+writes `config.json` and `usage-cache.json` into its own folder, so it needs to
+be writable. Avoid `C:\Program Files`.
 
-설치 스크립트도, 레지스트리 등록도 없다. 지울 때는 폴더를 삭제하면 된다
-(자동 실행을 걸었다면 [아래](#자동-실행)의 해제부터).
+There is no installer and nothing goes in the registry. To remove it, delete the
+folder (undo [autostart](#start-automatically) first if you set it up).
 
-## 실행
+## Run
 
-`start-hidden.vbs`를 더블클릭한다. 콘솔 창이 뜨지 않는다.
+Double-click **`ClaudMonWidget.exe`**. No console window appears.
 
-콘솔에서 직접 띄우려면:
+`start-hidden.vbs` does the same thing without the executable, if you would
+rather not run a binary you did not compile. Or from a console:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File widget.ps1 -Skin detail
 ```
 
-`-ExecutionPolicy Bypass`는 이 실행에만 적용된다. 시스템 정책을 바꾸지 않는다.
+`-ExecutionPolicy Bypass` applies to that one launch. It does not change your
+system policy.
 
-위젯은 **한 번에 하나만** 뜬다. 이미 떠 있는데 또 실행하면 두 번째는 조용히
-종료된다. 화면에 위젯이 겹쳐 쌓이고 그중 오래된 것이 낡은 값을 보여주는 일을
-막기 위해서다.
+The exe is a 46KB launcher, not a repackaged widget: it starts `widget.ps1` from
+its own folder with no console window, and that is all it does. The widget stays
+plain PowerShell you can read and edit. See [Building](#building) to rebuild it
+yourself.
 
-## 자동 실행
+**Only one widget runs at a time.** Launching it again while one is up exits
+immediately and silently. That keeps widgets from stacking on screen with a
+stale one on top.
 
-### Windows 시작 시
+## Start automatically
 
-1. `Win+R` → `shell:startup` → 시작프로그램 폴더가 열린다.
-2. `start-hidden.vbs`의 **바로가기**를 그 폴더에 넣는다.
+### With Windows
 
-해제하려면 그 바로가기를 지운다.
+1. `Win+R` → `shell:startup` opens the Startup folder.
+2. Put a **shortcut** to `ClaudMonWidget.exe` in it.
 
-### Claude Code 실행 시
+Delete the shortcut to undo.
 
-Claude Code 세션이 시작될 때 위젯이 같이 뜨게 한다. Claude를 쓸 때만 위젯이
-필요하다면 이쪽이 낫다.
+### With Claude Code
+
+Start the widget when a Claude Code session starts. Better if you only want it
+around while you are working with Claude.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1
 ```
 
-`~/.claude/settings.json`의 `hooks.SessionStart`에 항목 하나를 추가한다.
-기존 훅과 설정은 그대로 두고, 실행 전에 같은 폴더에 타임스탬프 백업을 남긴다.
-여러 번 실행해도 항목이 중복되지 않는다.
+This adds one entry to `hooks.SessionStart` in `~/.claude/settings.json`. Your
+other hooks and settings are left alone, and a timestamped backup is written
+next to the file first. Running it twice does not create a duplicate.
 
-해제:
+To undo:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 ```
 
-직접 넣고 싶다면 `~/.claude/settings.json`에 이렇게 추가하면 된다:
+By hand, the entry looks like this:
 
 ```json
 {
@@ -106,7 +117,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
         "hooks": [
           {
             "type": "command",
-            "command": "wscript.exe \"C:\\경로\\ClaudMonWidget\\start-hidden.vbs\""
+            "command": "wscript.exe \"C:\\path\\ClaudMonWidget\\start-hidden.vbs\""
           }
         ]
       }
@@ -115,84 +126,111 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 }
 ```
 
-세션마다 훅이 실행되지만 위젯이 단일 인스턴스라 두 번째부터는 즉시 종료된다.
+The hook fires on every session, but the widget is single-instance, so every
+launch after the first exits at once.
 
-**Claude Code가 끝나도 위젯은 남는다.** 위젯 우클릭 메뉴의 `Exit`로 닫는다.
-Claude가 종료될 때 위젯도 같이 닫으려면 세션 종료 훅에서 프로세스를 죽여야
-하는데, 다른 Claude 세션이 아직 떠 있을 때도 닫혀 버리므로 넣지 않았다.
+**The widget outlives Claude Code.** Close it from its own right-click `Exit`.
+Closing it on session end would need a stop hook that kills the process, and
+that fires even when other Claude sessions are still open, so it is not
+included.
 
-## 조작
+## Controls
 
-| 동작 | 결과 |
+| Action | Result |
 |---|---|
-| 드래그 | 이동. 위치는 종료할 때 `config.json`에 저장 |
-| 마우스 올리기 | 창 시작 시각, 청구 토큰, 캐시 읽기 토큰, 데이터 출처 툴팁 |
-| 우클릭 | 메뉴 |
+| Drag | Move it. The position is saved to `config.json` on exit |
+| Hover | Tooltip: window start, billed tokens, cache-read tokens, data source |
+| Right-click | Menu |
 
-메뉴 항목:
+Menu:
 
-- **Skin** — `simple` / `border` / `detail`. 하나만 선택된다.
-- **Opacity** — 55 / 75 / 92 / 100%. 하나만 선택된다.
-- **Always on top** — 항상 위 토글.
-- **Auto sync** — 5분마다 Anthropic에 물어보기 토글.
-- **Sync now** — 지금 Anthropic에 물어본다.
-- **Refresh now** — 로컬 파일만 다시 읽는다.
-- **Exit** — 종료.
+- **Skin** — `simple1` / `simple2` / `border1` / `border2` / `detail`. One at a time.
+- **Opacity** — 55 / 75 / 92 / 100%. One at a time.
+- **Always on top** — toggle.
+- **Auto sync** — toggle asking Anthropic every 5 minutes.
+- **Sync now** — ask Anthropic right now.
+- **Refresh now** — re-read local files only.
+- **Exit** — quit.
 
-## 스킨
+## Skins
 
-| 이름 | 폭 | 내용 |
+Five. A trailing `1` means the 5-hour session only; `2` adds the 7-day window.
+
+| Name | Width | Shows |
 |---|---|---|
-| `simple` | 150 | 배경 없이 숫자만 |
-| `border` | 270 | 둥근 알약 + 5시간·7일 막대 + 남은 시간 |
-| `detail` | 300 | 사용자명 + 구독 배지, 5시간·7일 막대, 토큰·요청 수, 데이터 출처 |
+| `simple1` | 150 | Bare 5-hour number, no panel |
+| `simple2` | 250 | Bare two columns: 5-hour and 7-day |
+| `border1` | 270 | Rounded pill with the 5-hour bar |
+| `border2` | 270 | Rounded pill with 5-hour and 7-day bars |
+| `detail` | 300 | Account name and plan badge, both bars, token and request counts, data source |
 
-높이는 내용에 맞춰 자동으로 정해진다. 글꼴 크기를 키운 환경에서도 글자가
-잘리지 않는다.
+`border2` is the default. Height follows the content, so nothing clips on a
+machine with larger font scaling.
 
-`detail` 스킨 예시:
+Both windows show **time remaining** until the next reset. The unit follows the
+scale: `3h 04m` for the 5-hour window, `6d 5h` for the 7-day one. `149h 05m` is
+not a number you can hold in your head.
+
+```
+simple1              simple2
+  ● 54%              ● 54%  │  6%
+   2h 57m              2h 57m │  6d 4h
+
+border1                          border2
+┌──────────────────────┐  ┌──────────────────────┐
+│ ● 54%        2h 57m  │  │ ● 54%        2h 57m  │
+│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │  │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
+└──────────────────────┘  │ 6%              6d 4h│
+                          │ ▓░░░░░░░░░░░░░░░░░░  │
+                          └──────────────────────┘
+```
+
+`detail`:
 
 ```
 ANIN                        [Pro]
 ─────────────────────────────────
-● 5시간 세션              4h 45m
-36%
+● 5-hour session          2h 57m
+54%
 ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░
-7일                           4%
+6%                         6d 4h
 ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-563.0k tok / 249 req / live now
+807.1k tok / 399 req / live 2m
 ```
 
-색상 단계: 초록(70% 미만) / 노랑(70% 이상) / 빨강(90% 이상) / 회색(값 없음).
+Both rows follow one rule: percentage on the left, time remaining on the right.
+
+Colour steps: green below 70%, amber at 70%, red at 90%, grey when there is no
+value.
 
 ---
 
-## 연동 방식
+## How it gets the numbers
 
-숫자는 세 군데에서 온다. 신선한 순서대로 쓴다.
+Three sources, freshest first.
 
-### 1. Anthropic에 직접 물어본다 (기본 5분마다)
+### 1. Ask Anthropic directly (every 5 minutes by default)
 
 ```
 GET https://api.anthropic.com/api/oauth/usage
-Authorization: Bearer <액세스 토큰>
+Authorization: Bearer <access token>
 anthropic-beta: oauth-2025-04-20
 ```
 
-Claude Code가 `/usage`를 그릴 때 호출하는 바로 그 엔드포인트다. 따라서 위젯의
-%는 `/usage`가 보여주는 값과 같다.
+The same endpoint Claude Code calls to draw `/usage`, so the widget's percentage
+is the percentage `/usage` shows.
 
-토큰은 Claude Code가 이미 저장해 둔 것을 읽는다:
+The token is the one Claude Code already stored:
 
 ```
 %USERPROFILE%\.claude\.credentials.json  →  claudeAiOauth.accessToken
 ```
 
-위젯은 별도 로그인을 요구하지 않고, 토큰을 어디로도 보내지 않는다. 위 요청
-헤더에만 쓴다. 토큰이 만료됐으면 호출을 건너뛴다 — 갱신은 Claude Code의 OAuth
-흐름이 할 일이고, 위젯이 그것을 흉내 내지 않는다.
+The widget never asks you to sign in and never sends the token anywhere except
+the request header above. If the token has expired it skips the call — refreshing
+is Claude Code's OAuth flow to run, and the widget does not imitate it.
 
-응답 형태:
+The response:
 
 ```json
 {
@@ -203,198 +241,239 @@ Claude Code가 `/usage`를 그릴 때 호출하는 바로 그 엔드포인트다
 }
 ```
 
-응답은 위젯 폴더의 `usage-cache.json`에 그대로 저장한다.
+It is saved verbatim to `usage-cache.json` in the widget's folder.
 
-**Claude Code의 파일에는 절대 쓰지 않는다.** `~/.claude.json`은 Claude Code가
-통째로 다시 쓰는 파일이라, 외부에서 동시에 쓰면 상태가 깨질 수 있다. 위젯이
-죽거나 실패해도 Claude Code 쪽은 영향을 받지 않는다.
+**Claude Code's own files are never written to.** `~/.claude.json` is rewritten
+wholesale by Claude Code, and writing to it from outside could corrupt that
+state. If the widget fails or dies, nothing on Claude Code's side is affected.
 
 ### 2. `%USERPROFILE%\.claude.json` → `cachedUsageUtilization`
 
-같은 숫자지만 Claude Code가 서버에서 받아올 때만 갱신되는 캐시다. 며칠 묵을 수
-있다. 1번을 아직 못 받았거나 읽을 수 없을 때의 대비책이다.
+The same numbers, but only refreshed when Claude Code itself fetches them. It
+can be days old. Used only when source 1 is unavailable.
 
-실측에서 이 캐시가 44시간 묵은 채 5시간 70% / 7일 60%를 가리키고 있었는데, 같은
-순간 1번으로 직접 물어본 실제 값은 28% / 3%였다. 라이브 호출을 넣은 이유다.
+In practice this cache sat 44 hours stale reading 70% / 60% while a live call at
+that same moment returned 28% / 3%. That is why source 1 exists.
 
-### 3. `%USERPROFILE%\.claude\projects\**\*.jsonl` → assistant 줄
+### 3. `%USERPROFILE%\.claude\projects\**\*.jsonl` → assistant lines
 
 ```json
 "usage": { "input_tokens": 2, "cache_creation_input_tokens": 25110,
            "cache_read_input_tokens": 29894, "output_tokens": 599 }
 ```
 
-요청별 토큰 수와 타임스탬프. 네트워크와 무관하게 5초마다 다시 읽는다. 항상
-최신이지만 서버 집계가 아니라 우리 자체 집계다.
+Per-request token counts with timestamps, re-read every 5 seconds with no
+network involved. Always current, but it is our own tally, not the server's.
 
-세션 창 안에 드는 줄만 더한다. 창 시작 = `five_hour.resets_at` − 5시간.
+Only lines inside the session window are summed. Window start =
+`five_hour.resets_at` − 5 hours.
 
-캐시 읽기 토큰은 청구 토큰의 20배를 넘기기 때문에 따로 센다. 화면의 `tok`은
-청구 토큰(input + output + 캐시 쓰기)이고, 캐시 읽기는 툴팁에만 나온다.
+Cache-read tokens run more than 20× the billed ones, so they are counted
+separately. The `tok` figure on screen is billed tokens (input + output + cache
+writes); cache reads appear only in the tooltip.
 
-### 사용자명과 구독 등급
+### Account name and plan
 
-`~/.claude.json`의 `oauthAccount` 블록에서 읽는다 — 네트워크 호출 없음.
+Read from the `oauthAccount` block of `~/.claude.json` — no network call.
 
-| 필드 | 쓰임 |
+| Field | Used for |
 |---|---|
-| `displayName` | 사용자명 |
-| `emailAddress` | 사용자명 툴팁 |
-| `organizationType` | 구독 배지 |
+| `displayName` | Account name |
+| `emailAddress` | Tooltip on the name |
+| `organizationType` | Plan badge |
 
-`organizationType` 매핑: `claude_pro`→`Pro`, `claude_max`→`Max`,
+`organizationType` maps: `claude_pro`→`Pro`, `claude_max`→`Max`,
 `claude_max_5x`→`Max 5x`, `claude_max_20x`→`Max 20x`, `claude_team`→`Team`,
 `claude_enterprise`→`Enterprise`.
 
-위젯이 도는 동안 바뀌지 않으므로 창을 만들 때 한 번만 읽는다.
+It cannot change while the widget runs, so it is read once at window creation.
 
-### 지금 무엇을 보고 있는지
+### Knowing what you are looking at
 
-`detail` 스킨 맨 아랫줄에 출처와 나이가 그대로 나온다.
+The bottom line of the `detail` skin names the source and its age.
 
-| 표시 | 뜻 |
+| Shown | Meaning |
 |---|---|
-| `live now` | 방금 Anthropic에서 받아옴 |
-| `live 12m` | 12분 전에 받아온 값 |
-| `claude-code 2d` | 라이브 실패. Claude Code 캐시를 쓰는 중이고 이틀 묵음 |
-| `token expired` | 토큰 만료. Claude Code를 한 번 실행하면 갱신된다 |
-| `sync failed: ...` | 네트워크 오류 등 |
+| `live now` | Just fetched from Anthropic |
+| `live 12m` | Fetched 12 minutes ago |
+| `claude-code 2d` | Live call failed; using Claude Code's cache, two days old |
+| `token expired` | Token expired. Run Claude Code once to refresh it |
+| `http 429` | Called too often. Clears itself on the next cycle |
+| `http 401` | Auth rejected. Sign in to Claude Code again |
+| `sync failed` | Network error and the like |
 
-`resets_at`이 이미 지났으면 그 %는 지난 창의 것이므로 **표시하지 않는다.** 대신
-자체 집계 토큰 수를 보여준다. 오래된 숫자를 현재 값인 척 보여주지 않는 것이 이
-위젯의 기본 원칙이다.
+Restarting the widget does not re-fetch if the cache is younger than
+`syncSeconds` (300 by default). That keeps frequent restarts — which the Claude
+Code hook makes easy — from hammering the endpoint into an `http 429`. `Sync
+now` ignores the limit.
 
-비용($)은 표시하지 않는다. 비용이 기록되는 `cost-state` 줄은 세션이 끝날 때쯤
-쓰이므로 진행 중인 세션 파일에는 없다.
+If `resets_at` has already passed, that percentage belongs to an expired window
+and is **not shown.** The widget falls back to its own token tally instead.
+Never presenting a stale number as a current one is the rule this widget is
+built around.
+
+Cost in dollars is not shown. The `cost-state` line that records it is written
+near the end of a session, so an in-progress session file does not have one.
 
 ---
 
-## 설정
+## Settings
 
-`config.json`은 위젯이 처음 종료될 때 만들어진다. 대부분은 우클릭 메뉴로
-바뀌므로 직접 열 일은 드물다.
+`config.json` is created when the widget first exits. The right-click menu
+changes most of it, so you rarely need to open the file.
 
-| 키 | 기본 | 뜻 |
+| Key | Default | Meaning |
 |---|---|---|
-| `skin` | `border` | 시작 스킨 |
-| `opacity` | `0.92` | 창 전체 불투명도 |
-| `left` / `top` | `-1` | 위치. `-1`이면 우하단에 자동 배치 |
-| `pollSeconds` | `5` | 로컬 파일 다시 읽는 주기 |
-| `syncSeconds` | `300` | Anthropic에 물어보는 주기 |
-| `autoSync` | `true` | 자동 동기화. 끄면 `Sync now`로만 갱신 |
-| `windowHours` | `5` | 세션 창 길이 |
-| `warnPct` / `dangerPct` | `70` / `90` | 노랑 / 빨강으로 넘어가는 지점 |
+| `skin` | `border2` | Starting skin. An unknown name falls back to the default |
+| `opacity` | `0.92` | Window opacity |
+| `left` / `top` | `-1` | Position. `-1` places it bottom-right |
+| `pollSeconds` | `5` | How often local files are re-read |
+| `syncSeconds` | `300` | How often Anthropic is asked |
+| `autoSync` | `true` | Automatic sync. Off means `Sync now` only |
+| `windowHours` | `5` | Session window length |
+| `warnPct` / `dangerPct` | `70` / `90` | Amber and red thresholds |
 
-`usage-cache.json`은 마지막 동기화 응답이다. 지워도 된다 — 다음 동기화에 다시
-만들어진다.
+`usage-cache.json` is the last sync response. Deleting it is safe — the next
+sync recreates it.
 
-## 문제 해결
+## Troubleshooting
 
-**위젯이 안 보인다**
-`config.json`의 `left` / `top`이 지금 없는 모니터를 가리킬 수 있다. 그 파일을
-지우고 다시 실행하면 우하단에 다시 배치된다.
+**The widget is nowhere on screen**
+`left` / `top` in `config.json` may point at a monitor you no longer have.
+Delete that file and start again; it goes back to the bottom-right corner.
 
-**남은 시간이 Claude 앱/웹과 다르다**
-위젯과 앱은 같은 `resets_at`을 쓰므로 값이 갈릴 이유가 없다. 갈린다면 위젯이
-낡았을 가능성이 높다 — 최신 버전인지 확인한다. 초 단위를 버리기 때문에 앱과
-1분까지 차이날 수 있고, 그 이상 차이나면 버그다.
+**Time remaining differs from the Claude app or web**
+Both read the same `resets_at`, so they should not disagree. If they do, the
+widget is probably out of date — check for a newer version. Seconds are dropped,
+so a difference of up to a minute is expected; more than that is a bug.
 
-**숫자가 멈춰 있다**
-오래 떠 있던 인스턴스일 수 있다. `Exit`로 닫고 다시 실행한다. 남은 시간은 매
-5초 다시 계산하므로, 정상이라면 1분마다 1분씩 줄어든다.
+**The numbers are frozen**
+Probably a long-running instance. `Exit` and start it again. Time remaining is
+recomputed every 5 seconds, so it should lose a minute every minute.
 
-**아랫줄이 `claude-code`에서 안 바뀐다**
-라이브 호출이 실패하는 중이다. `Sync now`를 눌러 사유를 확인한다.
-`token expired`면 Claude Code를 한 번 실행해 토큰을 갱신시킨다.
+**The bottom line stays on `claude-code`**
+The live call keeps failing. Press `Sync now` to see the reason. If it says
+`token expired`, run Claude Code once to refresh the token.
 
-**`%`가 안 나오고 토큰 수만 나온다**
-세션 창이 만료된 값밖에 없다는 뜻이다. `Sync now`를 누르거나 Claude Code에서
-`/usage`를 한 번 친다.
+**A token count shows instead of a `%`**
+Everything available is from an expired session window. Press `Sync now`, or run
+`/usage` once in Claude Code.
 
-**스크립트 실행이 차단된다**
-`start-hidden.vbs`와 위 명령들은 `-ExecutionPolicy Bypass`를 이 실행에만
-적용한다. 그래도 막히면 조직 정책일 수 있다.
+**Script execution is blocked**
+`ClaudMonWidget.exe`, `start-hidden.vbs` and the commands above all apply
+`-ExecutionPolicy Bypass` to that launch only. If it is still blocked, it is
+likely an organisation policy.
 
-## 테스트
+## Tests
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File test-usage.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File test-menu.ps1
 ```
 
-`test-usage.ps1`은 TEMP에 가짜 `.claude` 트리를 만들고 기준 시각까지 고정해서
-집계·계정 파싱·소스 우선순위·폴백을 검증한다. 네트워크를 타지 않고 실제 로그
-내용에도 기대지 않으므로 언제 돌려도 결과가 같다.
+`test-usage.ps1` builds a fake `.claude` tree in TEMP and pins the reference
+clock, then checks aggregation, account parsing, source priority and fallback.
+It touches no network and does not depend on what the real logs contain, so it
+gives the same result whenever it runs.
 
-`test-menu.ps1`은 우클릭 메뉴가 실제로 라디오처럼 동작하는지 확인한다. WPF
-`MenuItem`에는 라디오 모드가 없어서, 그냥 두면 불투명도가 여러 개 동시에
-선택된다.
+`test-menu.ps1` checks that the right-click menu really behaves like radio
+buttons. WPF `MenuItem` has no radio mode, so left alone the opacity entries all
+select at once.
 
-## 스킨 직접 만들기
+## Building
 
-`skins\<이름>.xaml` 파일 하나를 추가하면 끝이다. `widget.ps1`은 건드릴 필요가
-없다.
+`icon.ico` and `ClaudMonWidget.exe` are committed, so you only need this when
+the icon or the launcher changes:
 
-호스트는 아래 이름을 `FindName`으로 찾아서 **있는 것만** 채운다. 원하는 것만
-넣으면 된다.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1
+```
 
-| `x:Name` | 종류 | 채워지는 값 |
+It draws the icon with `System.Drawing`, packs the `.ico` by hand, and compiles
+the launcher with the C# compiler that ships with the .NET Framework on every
+Windows install. Nothing is downloaded.
+
+## Writing your own skin
+
+Add one file, `skins\<name>.xaml`. `widget.ps1` needs no changes.
+
+The host looks these names up with `FindName` and fills in **only the ones that
+exist**, so include just what you want.
+
+| `x:Name` | Type | Filled with |
 |---|---|---|
-| `Dot` | Shape | 상태 색 |
-| `TxtMain` | TextBlock | 5시간 사용률 %. 값이 없으면 자체 집계 토큰 수 |
-| `TxtReset` | TextBlock | 리셋까지 남은 시간, 모르면 `--` |
-| `TxtWeek` | TextBlock | 7일 사용률 % |
+| `Dot` | Shape | Status colour |
+| `TxtMain` | TextBlock | 5-hour percentage, or the token tally when there is none |
+| `TxtReset` | TextBlock | Time to the 5-hour reset (`3h 04m`), else `--` |
+| `TxtWeek` | TextBlock | 7-day percentage |
+| `TxtWeekReset` | TextBlock | Time to the 7-day reset (`6d 5h`), else `--` |
 | `TxtSub` | TextBlock | `563.0k tok / 249 req / live now` |
-| `TxtUser` | TextBlock | 사용자명 (툴팁에 이메일) |
-| `TxtPlan` | TextBlock | 구독 등급 |
-| `BarTrack` / `BarFill` | Border | 5시간 진행 막대 |
-| `WeekTrack` / `WeekFill` | Border | 7일 진행 막대 |
-| `Root` | 아무 컨테이너 | 우클릭 메뉴가 붙는 곳 |
+| `TxtUser` | TextBlock | Account name, e-mail in the tooltip |
+| `TxtPlan` | TextBlock | Plan badge |
+| `BarTrack` / `BarFill` | Border | 5-hour progress bar |
+| `WeekTrack` / `WeekFill` | Border | 7-day progress bar |
+| `Root` | any container | Where the right-click menu attaches |
 
-`Window`에는 `WindowStyle="None"`, `AllowsTransparency="True"`,
-`Background="Transparent"`가 필요하다. 높이는 `SizeToContent="Height"`로 두면
-글꼴 크기가 달라져도 잘리지 않는다.
+The `Window` needs `WindowStyle="None"`, `AllowsTransparency="True"` and
+`Background="Transparent"`. Use `SizeToContent="Height"` so nothing clips when
+font sizes differ.
 
-우클릭 메뉴 목록에 새 스킨을 넣으려면 `widget.ps1`의
-`foreach ($s in @('simple','border','detail'))`에 이름을 추가한다.
+To list a new skin in the menu, add the name to the `$Skins` array near the top
+of `widget.ps1` and to the `ValidateSet` on the `-Skin` parameter.
 
-## 알려진 제약
+```powershell
+$Skins = @('simple1','simple2','border1','border2','detail')
+```
 
-- 자체 토큰 집계는 Anthropic의 과금·한도 계산과 일치한다는 보장이 없다. 화면의
-  `%`는 서버 값이고, `tok`은 우리 집계다.
-- `/api/oauth/usage`는 공개 문서화된 API가 아니다. Claude Code가 쓰는 것을
-  그대로 쓴다. 응답 형태가 바뀌면 동기화가 `unrecognized response`를 남기고
-  **직전 캐시를 그대로 둔다** — 화면이 비지 않는다.
-- 마우스 통과(click-through)는 없다. 켜면 우클릭 메뉴에 닿을 수 없어져서 전역
-  단축키 등록이 딸려 온다.
-- Claude Code 업데이트로 JSONL 필드명이 바뀌면 집계가 0이 될 수 있다. 그럴 때
-  위젯은 죽지 않고 `--`를 표시한다.
-- Windows 전용이다. WPF에 묶여 있다.
+If `config.json` names a skin that no longer exists, the widget falls back to
+the default rather than refusing to start.
 
-## PowerShell 5.1에서 밟은 지뢰
+## Known limits
 
-고칠 때 다시 밟지 않도록 적어 둔다. 넷 다 조용히 틀린 값을 내놓는 종류다.
+- The token tally is ours, and is not guaranteed to match how Anthropic bills or
+  meters. The `%` on screen is the server's number; `tok` is ours.
+- `/api/oauth/usage` is not a publicly documented API. The widget uses what
+  Claude Code uses. If the response shape changes, the sync records
+  `unrecognized response` and **leaves the last good cache in place** — the
+  display does not go blank.
+- No click-through. Turning it on would put the right-click menu out of reach
+  and drag a global hotkey along with it.
+- If a Claude Code update renames JSONL fields the tally can go to zero. The
+  widget shows `--` rather than dying.
+- Windows only. It is tied to WPF.
 
-- **`~/.claude.json`을 `ConvertFrom-Json`으로 파싱하면 안 된다.** 프로젝트 맵이
-  절대경로를 키로 쓰는데 파서가 키를 대소문자 구분 없이 다뤄서, `c:\...`와
-  `C:\...`가 중복 키로 충돌해 파싱 전체가 예외를 던진다. 필요한 값만 정규식으로
-  뽑는다.
-- **`.ps1`에 한글을 넣지 않는다.** BOM 없는 스크립트를 ANSI로 읽어서 글자가
-  깨진다. 한글은 XAML에만 두고, XAML은 UTF-8로 명시해서 읽는다. 같은 이유로
-  `Get-Content | Set-Content`로 이 파일들을 왕복시키면 안 된다.
-- **`GetNewClosure()`한 스크립트블록은 복제된 스코프에서 돈다.** 만든 쪽이
-  나중에 대입한 `$script:` 변수도, 감싸는 함수 안에 정의된 함수도 보이지 않는다.
-  공유 상태는 해시테이블 하나에 담아 참조로 넘기고, 핸들러가 부를 함수는 스크립트
-  최상위에 둔다. 이걸 놓쳤을 때 `SourceInitialized` 핸들러가 중간에 예외로
-  끊겨서, 그 뒤에 있던 폴링 타이머가 시작되지 않았다. 위젯은 멀쩡히 떠 있는데
-  첫 프레임에서 멈췄다 — 죽은 위젯은 눈에 띄지만 멈춘 위젯은 안 띈다. 그래서
-  지금은 폴링 타이머를 **가장 먼저, 무조건** 시작한다.
-- **`[int]` 캐스트는 버림이 아니라 반올림이다.** `[int]3.58`은 `4`다. 남은 시간을
-  `[int]$span.TotalHours`로 계산하는 바람에 3시간 34분이 `4h 34m`으로 나왔다.
-  분은 그대로 맞아서 그럴듯해 보였고, 없는 한 시간의 여유가 있는 것처럼 읽혔다.
-  시간을 자를 때는 `[math]::Floor`를 쓴다. 예산을 보여주는 숫자는 올림 쪽으로
-  틀리면 안 된다.
-- **`StrictMode 2.0`에서 파이프라인 결과에 `.Count`를 쓰면 안 된다.** 결과가
-  하나뿐이면 스칼라가 나와 `.Count`가 없다고 예외가 난다. 인자 계산 중에 터지면
-  그 검사가 통째로 건너뛰어지므로, 테스트가 조용히 통과한 척한다. `@(...)`로
-  감싼다.
+## Mines stepped on in PowerShell 5.1
+
+Written down so the next change does not step on them again. Every one of these
+fails quietly with a wrong value rather than an error.
+
+- **Do not parse `~/.claude.json` with `ConvertFrom-Json`.** It holds a project
+  map keyed by absolute path, and the parser treats keys case-insensitively, so
+  `c:\...` and `C:\...` collide as duplicates and the whole parse throws. Pull
+  out the few values you need with a regex instead.
+- **Keep non-ASCII out of `.ps1` files.** A script without a BOM is read as ANSI
+  and the characters are mangled. Localised labels live in the XAML, which is
+  read as UTF-8 explicitly. For the same reason, never round-trip these files
+  through `Get-Content | Set-Content`.
+- **A scriptblock with `GetNewClosure()` runs against a cloned scope.** It sees
+  neither `$script:` variables its creator assigned afterwards nor functions
+  defined inside the enclosing function. Put shared state in one hashtable and
+  pass it by reference, and put the helpers a handler calls at script level.
+  Missing this made a `SourceInitialized` handler throw partway through, so the
+  polling timer after it never started. The widget sat there looking fine,
+  frozen on its first frame — a dead widget is obvious, a stopped one is not.
+  The polling timer now starts **first, unconditionally**.
+- **An `[int]` cast rounds, it does not truncate.** `[int]3.58` is `4`.
+  Computing time left as `[int]$span.TotalHours` turned 3h34m into `4h 34m`. The
+  minutes stayed correct, so it looked entirely plausible, and it read as an
+  hour of budget that did not exist. Use `[math]::Floor` when cutting hours.
+  A number that represents a budget must not err upward.
+- **`return $array` unrolls into the pipeline.** The caller gets an `object[]`
+  of boxed elements instead of the `byte[]` it asked for. `.Length` still reads
+  right, so the icon directory looked correct while `BinaryWriter.Write` picked
+  a different overload and emitted one byte per entry: a 108-byte `.ico` with a
+  perfect header and no images. Return `, $array`.
+- **Do not use `.Count` on a pipeline result under `StrictMode 2.0`.** A single
+  result comes back as a scalar and `.Count` throws. When that happens while
+  evaluating an argument, the whole check is skipped — so the test suite
+  silently pretends to pass. Wrap it in `@(...)`.

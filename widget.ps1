@@ -11,7 +11,7 @@
 # which is read as UTF-8 explicitly.
 
 param(
-    [ValidateSet('simple','border','detail')]
+    [ValidateSet('simple1','simple2','border1','border2','detail')]
     [string]$Skin
 )
 
@@ -34,8 +34,12 @@ if ($Standalone) {
 
 $ConfigPath = Join-Path $PSScriptRoot 'config.json'
 
+# The "1" variants show the 5-hour session only; the "2" variants add the
+# 7-day window. Order here is the order of the right-click menu.
+$Skins = @('simple1','simple2','border1','border2','detail')
+
 $Default = @{
-    skin        = 'border'
+    skin        = 'border2'
     opacity     = 0.92
     left        = -1        # -1 means "not placed yet"
     top         = -1
@@ -116,7 +120,14 @@ function Set-OnlyChecked($group, $chosen) {
 function Show-Widget([string]$skinName) {
 
     $xamlPath = Join-Path $PSScriptRoot ("skins\$skinName.xaml")
-    if (-not (Test-Path -LiteralPath $xamlPath)) { throw "skin not found: $xamlPath" }
+    if (-not (Test-Path -LiteralPath $xamlPath)) {
+        # A config.json written by an older version names a skin that no longer
+        # exists. Falling back beats refusing to start over a cosmetic setting.
+        $skinName = $Default.skin
+        $cfg.skin = $skinName
+        $xamlPath = Join-Path $PSScriptRoot ("skins\$skinName.xaml")
+        if (-not (Test-Path -LiteralPath $xamlPath)) { throw "skin not found: $xamlPath" }
+    }
 
     [xml]$xaml = [System.IO.File]::ReadAllText($xamlPath, [System.Text.Encoding]::UTF8)
     $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
@@ -135,7 +146,7 @@ function Show-Widget([string]$skinName) {
 
     # Skins are free to omit any of these; every use is null-guarded.
     $ui = @{}
-    foreach ($n in @('Root','Dot','TxtMain','TxtSub','TxtReset','TxtWeek',
+    foreach ($n in @('Root','Dot','TxtMain','TxtSub','TxtReset','TxtWeek','TxtWeekReset',
                      'BarTrack','BarFill','WeekTrack','WeekFill',
                      'TxtUser','TxtPlan')) {
         $ui[$n] = $win.FindName($n)
@@ -201,18 +212,13 @@ function Show-Widget([string]$skinName) {
             }
         }
 
-        if ($ui.TxtReset) {
-            if ($u.FiveHourResets -and $u.FiveHourResets -gt (Get-Date)) {
-                $ui.TxtReset.Text = Format-Remaining $u.FiveHourResets
-            } else {
-                $ui.TxtReset.Text = '--'
-            }
-        }
+        if ($ui.TxtReset) { $ui.TxtReset.Text = Format-Remaining $u.FiveHourResets }
 
         if ($ui.TxtWeek) {
             if ($null -ne $u.SevenDayPct) { $ui.TxtWeek.Text = ('{0:0}%' -f $u.SevenDayPct) }
             else { $ui.TxtWeek.Text = '--' }
         }
+        if ($ui.TxtWeekReset) { $ui.TxtWeekReset.Text = Format-Remaining $u.SevenDayResets }
         if ($ui.WeekFill -and $ui.WeekTrack -and $null -ne $u.SevenDayPct) {
             $w = $ui.WeekTrack.ActualWidth
             if ($w -gt 0) { $ui.WeekFill.Width = $w * [math]::Min(1.0, $u.SevenDayPct / 100.0) }
@@ -236,7 +242,8 @@ function Show-Widget([string]$skinName) {
     # A failed sync is not fatal: the note goes on the widget and the local
     # sources still drive the display.
     $sync = {
-        $status = Sync-ClaudeUsage
+        param([int]$MinAgeSeconds = 0)
+        $status = Sync-ClaudeUsage -MinAgeSeconds $MinAgeSeconds
         if ($status -eq 'ok') { $state.SyncNote = '' } else { $state.SyncNote = $status }
         & $refresh
     }.GetNewClosure()
@@ -253,7 +260,7 @@ function Show-Widget([string]$skinName) {
     # --- context menu ---
     $menu = New-Object System.Windows.Controls.ContextMenu
 
-    foreach ($s in @('simple','border','detail')) {
+    foreach ($s in $Skins) {
         $name = $s
         $mi = Add-MenuItem $menu "Skin: $name" ({
             param($item, $e)
@@ -313,7 +320,12 @@ function Show-Widget([string]$skinName) {
         $timer.Start()
         & $refresh
         if ($cfg.autoSync) {
-            try { & $sync; $state.SyncTimer.Start() } catch { $state.SyncNote = 'sync start failed' }
+            try {
+                # Reuse a cache younger than one sync interval instead of
+                # refetching it just because the widget restarted.
+                & $sync ([int]$cfg.syncSeconds)
+                $state.SyncTimer.Start()
+            } catch { $state.SyncNote = 'sync start failed' }
         }
     }.GetNewClosure())
 

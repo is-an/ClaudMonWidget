@@ -77,10 +77,19 @@ function Sync-ClaudeUsage {
     param(
         [string]$CachePath       = (Join-Path $PSScriptRoot 'usage-cache.json'),
         [string]$OAuthFilePath = (Join-Path $env:USERPROFILE '.claude\.credentials.json'),
-        [int]$TimeoutSec = 15
+        [int]$TimeoutSec = 15,
+        # Skip the call when the cache is younger than this. Startup passes the
+        # sync interval so that restarting the widget repeatedly - which the
+        # Claude Code hook makes easy - does not hammer the endpoint into a 429.
+        [int]$MinAgeSeconds = 0
     )
 
     try {
+        if ($MinAgeSeconds -gt 0 -and (Test-Path -LiteralPath $CachePath)) {
+            $age = (Get-Date) - (Get-Item -LiteralPath $CachePath).LastWriteTime
+            if ($age.TotalSeconds -lt $MinAgeSeconds) { return 'ok' }
+        }
+
         if (-not (Test-Path -LiteralPath $OAuthFilePath)) { return 'no credentials' }
 
         $cred = Get-Content -LiteralPath $OAuthFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -112,7 +121,13 @@ function Sync-ClaudeUsage {
         [System.IO.File]::WriteAllText($CachePath, $body, (New-Object System.Text.UTF8Encoding $false))
         return 'ok'
     } catch {
-        return "sync failed: $($_.Exception.Message)"
+        # The framework's message is a localized sentence that overruns the
+        # widget's one line. The status code is the part worth showing.
+        $resp = $_.Exception.PSObject.Properties['Response']
+        if ($resp -and $resp.Value) {
+            return ('http {0}' -f [int]$resp.Value.StatusCode)
+        }
+        return 'sync failed'
     }
 }
 
@@ -246,13 +261,20 @@ function Format-Tokens {
     return [string][int]$N
 }
 
+# Time left until a reset, at whatever scale reads best. The 5-hour window
+# lands in the hour branch, the 7-day window in the day branch: "6d 5h" is
+# something you can hold in your head, "149h 05m" is not.
 function Format-Remaining {
-    param([datetime]$ResetsAt, [datetime]$Now = (Get-Date))
-    $span = $ResetsAt - $Now
+    param($ResetsAt, [datetime]$Now = (Get-Date))
+    if (-not $ResetsAt) { return '--' }
+    $span = ([datetime]$ResetsAt) - $Now
     if ($span.TotalSeconds -le 0) { return '--' }
     # Floor, not [int]. PowerShell's [int] cast rounds, so 3h34m (TotalHours
     # 3.58) came out as "4h 34m" - a whole hour more budget than you have,
     # while the minutes stayed right, which is what made it look plausible.
+    if ($span.TotalDays -ge 1) {
+        return ('{0}d {1}h' -f [int][math]::Floor($span.TotalDays), $span.Hours)
+    }
     if ($span.TotalHours -ge 1) {
         return ('{0}h {1:00}m' -f [int][math]::Floor($span.TotalHours), $span.Minutes)
     }

@@ -2,6 +2,11 @@
 # assertions do not depend on whatever the real logs happen to contain.
 # Run:  powershell -File test-usage.ps1
 
+# Without this an error while evaluating a Check argument - a renamed function,
+# a .Count on a scalar - kills that one line and lets the run finish with
+# "all checks passed" having silently skipped it.
+$ErrorActionPreference = 'Stop'
+
 . (Join-Path $PSScriptRoot 'usage.ps1')
 
 $root = Join-Path $env:TEMP ("claudmon-test-" + [guid]::NewGuid().ToString('N').Substring(0,8))
@@ -89,7 +94,12 @@ Check 'remaining floors hours'  (Format-Remaining $now.AddMinutes(214).AddSecond
 Check 'remaining floors at .5'  (Format-Remaining $now.AddMinutes(90) $now)  '1h 30m'
 Check 'remaining floors 59m'    (Format-Remaining $now.AddSeconds(3590) $now) '59m'
 Check 'remaining just over 1h'  (Format-Remaining $now.AddMinutes(60) $now)  '1h 00m'
-Check 'remaining multi-day'     (Format-Remaining $now.AddHours(50).AddMinutes(40) $now) '50h 40m'
+
+# Past a day the units switch: "6d 5h" is holdable, "149h 05m" is not.
+Check 'remaining days'          (Format-Remaining $now.AddDays(6).AddHours(5) $now)  '6d 5h'
+Check 'remaining exactly 1 day' (Format-Remaining $now.AddHours(24) $now)            '1d 0h'
+Check 'remaining just under'    (Format-Remaining $now.AddHours(23).AddMinutes(59) $now) '23h 59m'
+Check 'remaining null'          (Format-Remaining $null $now) '--'
 
 # A reset time already in the past means the cached percentage belongs to an
 # old window, so it must be withheld rather than shown as current.
@@ -121,6 +131,13 @@ Set-Content -LiteralPath $livePath -Value 'garbage, not json' -Encoding UTF8
 $fb = Get-ClaudeUsage -ClaudeDir (Join-Path $root '.claude') -ConfigPath $cfgPath -CachePath $livePath -Now $now
 Check 'bad cache falls back'  $fb.Source      'claude-code'
 Check 'bad cache keeps pct'   $fb.FiveHourPct 42
+
+# A fresh cache must short-circuit before any network call. If this ever tries
+# to reach the endpoint the test suite stops being offline.
+Set-Content -LiteralPath $livePath -Value $live -Encoding UTF8
+Check 'sync skips fresh cache' (Sync-ClaudeUsage -CachePath $livePath -MinAgeSeconds 3600) 'ok'
+(Get-Item -LiteralPath $livePath).LastWriteTime = (Get-Date).AddHours(-2)
+Check 'sync no credentials'    (Sync-ClaudeUsage -CachePath $livePath -MinAgeSeconds 3600 -OAuthFilePath (Join-Path $root 'nope.json')) 'no credentials'
 
 Check 'Format-Age minutes' (Format-Age 30)   '30m'
 Check 'Format-Age hours'   (Format-Age 150)  '3h'

@@ -4,8 +4,9 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" Topmost="True" ResizeMode="NoResize">
 
-    <!-- No chrome at all: the numbers float on the wallpaper. A drop shadow
-         does the legibility work that a background panel would normally do. -->
+    <!-- 5-hour session only. No chrome at all: the numbers float on the
+         wallpaper, and a drop shadow does the legibility work that a
+         background panel would normally do. -->
     <Grid x:Name="Root" Background="#01000000">
         <Grid.Effect>
             <DropShadowEffect Color="#000000" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
