@@ -170,11 +170,12 @@ function Show-Widget([string]$skinName) {
     # by everyone; $script: variables are not, because GetNewClosure() runs the
     # handler against a cloned scope with its own script-level storage.
     $state = @{
-        Relaunch     = $false
-        SyncNote     = ''
-        SyncTimer    = $null
-        SkinItems    = @()
-        OpacityItems = @()
+        Relaunch      = $false
+        SyncNote      = ''
+        SyncTimer     = $null
+        SkinItems     = @()
+        OpacityItems  = @()
+        WindowExpired = $false   # the cached window has rolled over; re-sync
     }
 
     # --- drag ---
@@ -190,7 +191,13 @@ function Show-Widget([string]$skinName) {
             return
         }
 
-        $pct   = $u.FiveHourPct
+        $pct = $u.FiveHourPct
+        # No percentage means the cached reset time has passed: a new 5-hour
+        # window has begun and only the server knows its numbers. The poll tick
+        # reads this and pulls a fresh one instead of leaving the widget grey
+        # until the next scheduled sync.
+        $state.WindowExpired = ($null -eq $pct)
+
         $color = Get-StateColor $pct
         Set-Brush $ui.Dot $color
         Set-Brush $ui.BarFill $color
@@ -238,20 +245,41 @@ function Show-Widget([string]$skinName) {
             $u.Source)
     }.GetNewClosure()
 
-    # --- talk to Anthropic (runs every syncSeconds, and on demand) ---
+    # --- talk to Anthropic ---
     # A failed sync is not fatal: the note goes on the widget and the local
     # sources still drive the display.
-    $sync = {
-        param([int]$MinAgeSeconds = 0)
+    #
+    # Called directly only. A scriptblock wired to an event is handed
+    # (sender, args) positionally, so a typed parameter like this one would
+    # try to cast a DispatcherTimer to [int] and throw inside the handler -
+    # silently, since nothing surfaces an exception raised in a tick. That is
+    # how auto-sync and Sync now both stopped working while the widget went on
+    # looking healthy.
+    $doSync = {
+        param([int]$MinAgeSeconds)
         $status = Sync-ClaudeUsage -MinAgeSeconds $MinAgeSeconds
         if ($status -eq 'ok') { $state.SyncNote = '' } else { $state.SyncNote = $status }
         & $refresh
     }.GetNewClosure()
 
+    # Event-facing wrapper: takes no parameters, so the arguments an event
+    # supplies land harmlessly in $args.
+    $sync = { & $doSync 0 }.GetNewClosure()
+
     # --- timers ---
+    # The poll tick also closes the gap at a window rollover. Without it the
+    # widget sits grey, showing no percentage, until the next scheduled sync -
+    # up to syncSeconds of looking broken right when the number matters.
+    # MinAgeSeconds 60 is what stops that from turning into a retry storm: once
+    # a sync has written the cache, the next ticks return without a call.
+    $tick = {
+        & $refresh
+        if ($state.WindowExpired) { & $doSync 60 }
+    }.GetNewClosure()
+
     $timer = New-Object System.Windows.Threading.DispatcherTimer
     $timer.Interval = [timespan]::FromSeconds([double]$cfg.pollSeconds)
-    $timer.Add_Tick($refresh)
+    $timer.Add_Tick($tick)
 
     $state.SyncTimer = New-Object System.Windows.Threading.DispatcherTimer
     $state.SyncTimer.Interval = [timespan]::FromSeconds([double]$cfg.syncSeconds)
@@ -323,7 +351,7 @@ function Show-Widget([string]$skinName) {
             try {
                 # Reuse a cache younger than one sync interval instead of
                 # refetching it just because the widget restarted.
-                & $sync ([int]$cfg.syncSeconds)
+                & $doSync ([int]$cfg.syncSeconds)
                 $state.SyncTimer.Start()
             } catch { $state.SyncNote = 'sync start failed' }
         }

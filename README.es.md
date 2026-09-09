@@ -328,6 +328,11 @@ se muestra**. En su lugar aparece nuestro propio recuento de tokens. No
 presentar nunca un número viejo como si fuera actual es la regla sobre la que
 está construido este widget.
 
+Ese estado debería durar un instante. Cuando el sondeo detecta que la ventana ha
+cambiado, pide la nueva a Anthropic en ese mismo momento en vez de esperar a la
+siguiente sincronización programada, así que el hueco son segundos y no hasta
+`syncSeconds`.
+
 No se muestra el coste en dólares. La línea `cost-state` que lo registra se
 escribe cerca del final de una sesión, así que un archivo de sesión en curso no
 la tiene.
@@ -498,6 +503,15 @@ silencio con un valor incorrecto, no con un error.
   `BinaryWriter.Write` elegía otra sobrecarga y emitía un byte por entrada: un
   `.ico` de 108 bytes con una cabecera perfecta y ninguna imagen. Devuelve
   `, $array`.
+- **Un scriptblock conectado a un evento recibe `(sender, args)` por posición.**
+  Si le pones un parámetro con tipo, la conversión se aplica al sender —un
+  `DispatcherTimer`, por ejemplo— y lanza una excepción dentro del manejador,
+  donde nada la saca a la luz. Así murieron a la vez el auto sync y `Sync now`
+  mientras el widget seguía pareciendo sano: la caché dejó de refrescarse, la
+  ventana de sesión cambió y el porcentaje se quedó gris hasta reiniciar, porque
+  el reinicio usaba la ruta de llamada directa. Los manejadores no llevan
+  parámetros; un envoltorio pasa el argumento real. `test-menu.ps1` fija ambas
+  mitades.
 - **No uses `.Count` sobre el resultado de una tubería con `StrictMode 2.0`.**
   Un único resultado vuelve como escalar y `.Count` lanza una excepción. Si eso
   ocurre al evaluar un argumento, la comprobación entera se salta, así que la

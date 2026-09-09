@@ -319,6 +319,10 @@ and is **not shown.** The widget falls back to its own token tally instead.
 Never presenting a stale number as a current one is the rule this widget is
 built around.
 
+That state is meant to be brief. When the poll notices the window has rolled
+over, it asks Anthropic for the new one on the spot rather than waiting for the
+next scheduled sync, so the gap is seconds rather than up to `syncSeconds`.
+
 Cost in dollars is not shown. The `cost-state` line that records it is written
 near the end of a session, so an in-progress session file does not have one.
 
@@ -481,6 +485,14 @@ fails quietly with a wrong value rather than an error.
   right, so the icon directory looked correct while `BinaryWriter.Write` picked
   a different overload and emitted one byte per entry: a 108-byte `.ico` with a
   perfect header and no images. Return `, $array`.
+- **A scriptblock wired to an event is handed `(sender, args)` positionally.**
+  Give it a typed parameter and the cast runs against the sender — a
+  `DispatcherTimer`, say — and throws inside the handler, where nothing surfaces
+  it. Auto-sync and `Sync now` both died this way while the widget went on
+  looking healthy: the cache stopped refreshing, the session window rolled over,
+  and the percentage went grey until a restart, which took the direct-call path.
+  Handlers take no parameters; a wrapper passes the real argument on.
+  `test-menu.ps1` pins both halves.
 - **Do not use `.Count` on a pipeline result under `StrictMode 2.0`.** A single
   result comes back as a scalar and `.Count` throws. When that happens while
   evaluating an argument, the whole check is skipped — so the test suite

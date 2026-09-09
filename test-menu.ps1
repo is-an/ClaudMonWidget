@@ -65,6 +65,38 @@ Check 'value followed the click'  $state.Chose 1.0
 Add-Separator $menu
 Check 'separator added' $menu.Items.Count 5
 
+# --- event handler argument binding -----------------------------------------
+# A scriptblock wired to an event is handed (sender, args) positionally, so a
+# typed parameter gets the sender - a DispatcherTimer, say - and the cast throws
+# inside the handler, where nothing surfaces it. That is how the widget's
+# auto-sync and Sync now both died while the widget went on looking healthy: the
+# cache stopped refreshing, the session window rolled over, and the percentage
+# went grey until a restart. Handlers take no parameters; a wrapper passes the
+# real argument on.
+$seen = @{ Typed = 'never ran'; Wrapped = 'never ran' }
+
+$typedHandler = { param([int]$MinAgeSeconds) $seen.Typed = "ran $MinAgeSeconds" }.GetNewClosure()
+$innerWork    = { param([int]$MinAgeSeconds) $seen.Wrapped = "ran $MinAgeSeconds" }.GetNewClosure()
+$wrapped      = { & $innerWork 60 }.GetNewClosure()
+
+# What an event does to a typed handler, without needing a dispatcher for it.
+$timerLike = New-Object System.Windows.Threading.DispatcherTimer
+try { $typedHandler.Invoke($timerLike, $null) } catch { }
+Check 'typed handler never runs' $seen.Typed 'never ran'
+
+# The wrapper, driven by a real tick.
+$t = New-Object System.Windows.Threading.DispatcherTimer
+$t.Interval = [timespan]::FromMilliseconds(50)
+$t.Add_Tick($wrapped)
+$t.Add_Tick({
+    $t.Stop()
+    [System.Windows.Threading.Dispatcher]::CurrentDispatcher.InvokeShutdown()
+}.GetNewClosure())
+$t.Start()
+try { [System.Windows.Threading.Dispatcher]::Run() } catch { }
+
+Check 'wrapped handler runs on tick' $seen.Wrapped 'ran 60'
+
 if ($fail.Count) {
     Write-Host ''
     $fail | ForEach-Object { Write-Host "FAIL $_" -ForegroundColor Red }
