@@ -4,18 +4,7 @@
 
 一个半透明、始终置顶的 Windows 小组件，显示你的 Claude Code 用量。
 
-```
-┌─────────────────────────────────┐
-│ ANIN                      [Pro] │
-│ ─────────────────────────────── │
-│ ● 5 小时会话             2h 57m │
-│ 54%                             │
-│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│ 6%                        6d 4h │
-│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│ 807.1k tok / 399 req / live 2m  │
-└─────────────────────────────────┘
-```
+![detail](docs/detail.png)
 
 无需安装任何东西。它只用 Windows 自带的 PowerShell 5.1 和 WPF，并直接复用
 Claude Code 已经保存好的凭据。不需要 `npm install`，也不需要另外登录。
@@ -75,6 +64,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 - **Sync now** —— 立即向 Anthropic 询问。**Refresh now** —— 只重读本地文件。
 - **Exit**。
 
+![menu](docs/menubar.png)
+
 ## 皮肤
 
 名字末尾是 `1` 的只显示 5 小时会话，`2` 的还会显示 7 天窗口。默认 `border2`。
@@ -87,19 +78,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 | `border2` | 270 | 圆角胶囊 + 两条进度条 |
 | `detail` | 300 | 用户名与套餐徽章、两条进度条、token 与请求数、数据来源 |
 
-```
-simple1            simple2
-  ● 54%              ● 54%  │  6%
-  2h 57m             2h 57m │  6d 4h
+![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
-border1                     border2
-┌──────────────────────┐    ┌──────────────────────┐
-│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
-│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
-└──────────────────────┘    │ 6%             6d 4h │
-                            │ ▓░░░░░░░░░░░░░░░░░░  │
-                            └──────────────────────┘
-```
+![border1](docs/board1.png)
+
+![border2](docs/board2.png)
 
 `detail` 就是本页顶部那个。
 

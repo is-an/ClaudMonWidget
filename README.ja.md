@@ -4,18 +4,7 @@
 
 Claude Code の使用量を表示する、半透明で常に最前面の Windows ウィジェット。
 
-```
-┌─────────────────────────────────┐
-│ ANIN                      [Pro] │
-│ ─────────────────────────────── │
-│ ● 5時間セッション        2h 57m │
-│ 54%                             │
-│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│ 6%                        6d 4h │
-│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│ 807.1k tok / 399 req / live 2m  │
-└─────────────────────────────────┘
-```
+![detail](docs/detail.png)
 
 インストールするものはありません。Windows 標準の PowerShell 5.1 と WPF だけで
 動き、Claude Code が保存済みの認証情報をそのまま使います。`npm install` も別途の
@@ -81,6 +70,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 - **Sync now** — 今すぐ Anthropic へ問い合わせ。**Refresh now** — ローカル ファイルのみ再読み込み。
 - **Exit**。
 
+![menu](docs/menubar.png)
+
 ## スキン
 
 末尾の `1` は 5 時間セッションのみ、`2` は 7 日間の枠も表示します。既定は
@@ -94,19 +85,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 | `border2` | 270 | 角丸のピル + 両方のバー |
 | `detail` | 300 | ユーザー名とプラン バッジ、両方のバー、トークン数とリクエスト数、データ元 |
 
-```
-simple1            simple2
-  ● 54%              ● 54%  │  6%
-  2h 57m             2h 57m │  6d 4h
+![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
-border1                     border2
-┌──────────────────────┐    ┌──────────────────────┐
-│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
-│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
-└──────────────────────┘    │ 6%             6d 4h │
-                            │ ▓░░░░░░░░░░░░░░░░░░  │
-                            └──────────────────────┘
-```
+![border1](docs/board1.png)
+
+![border2](docs/board2.png)
 
 `detail` はこのページ冒頭のものです。
 

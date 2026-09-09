@@ -5,18 +5,7 @@
 Un widget de Windows translúcido y siempre visible que muestra tu consumo de
 Claude Code.
 
-```
-┌─────────────────────────────────┐
-│ ANIN                      [Pro] │
-│ ─────────────────────────────── │
-│ ● Sesión de 5 horas      2h 57m │
-│ 54%                             │
-│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│ 6%                        6d 4h │
-│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│ 807.1k tok / 399 req / live 2m  │
-└─────────────────────────────────┘
-```
+![detail](docs/detail.png)
 
 No hay nada que instalar: funciona con el PowerShell 5.1 y el WPF que vienen con
 Windows, y reutiliza las credenciales que Claude Code ya guardó. Sin
@@ -84,6 +73,8 @@ ventana y el desglose de tokens. Menú contextual:
 - **Sync now** — consultar a Anthropic ya. **Refresh now** — releer solo los archivos locales.
 - **Exit**.
 
+![menu](docs/menubar.png)
+
 ## Skins
 
 Un `1` final muestra solo la sesión de 5 horas; `2` añade la ventana de 7 días.
@@ -97,19 +88,11 @@ El predeterminado es `border2`.
 | `border2` | 270 | Píldora redondeada con ambas barras |
 | `detail` | 300 | Nombre de cuenta e insignia de plan, ambas barras, tokens y peticiones, origen del dato |
 
-```
-simple1            simple2
-  ● 54%              ● 54%  │  6%
-  2h 57m             2h 57m │  6d 4h
+![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
-border1                     border2
-┌──────────────────────┐    ┌──────────────────────┐
-│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
-│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
-└──────────────────────┘    │ 6%             6d 4h │
-                            │ ▓░░░░░░░░░░░░░░░░░░  │
-                            └──────────────────────┘
-```
+![border1](docs/board1.png)
+
+![border2](docs/board2.png)
 
 `detail` es el de arriba del todo en esta página.
 

@@ -4,18 +4,7 @@
 
 A translucent, always-on-top Windows widget showing your Claude Code usage.
 
-```
-┌─────────────────────────────────┐
-│ ANIN                      [Pro] │
-│ ─────────────────────────────── │
-│ ● 5-hour session         2h 57m │
-│ 54%                             │
-│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│ 6%                        6d 4h │
-│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│ 807.1k tok / 399 req / live 2m  │
-└─────────────────────────────────┘
-```
+![detail](docs/detail.png)
 
 Nothing to install: it runs on the PowerShell 5.1 and WPF that ship with
 Windows, and reuses the credentials Claude Code already stored. No `npm
@@ -83,6 +72,8 @@ Right-click for the menu:
 - **Sync now** — ask Anthropic immediately. **Refresh now** — re-read local files.
 - **Exit**.
 
+![menu](docs/menubar.png)
+
 ## Skins
 
 A trailing `1` shows the 5-hour session only; `2` adds the 7-day window.
@@ -96,19 +87,11 @@ A trailing `1` shows the 5-hour session only; `2` adds the 7-day window.
 | `border2` | 270 | Rounded pill with both bars |
 | `detail` | 300 | Account name and plan badge, both bars, token and request counts, data source |
 
-```
-simple1            simple2
-  ● 54%              ● 54%  │  6%
-  2h 57m             2h 57m │  6d 4h
+![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
-border1                     border2
-┌──────────────────────┐    ┌──────────────────────┐
-│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
-│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
-└──────────────────────┘    │ 6%             6d 4h │
-                            │ ▓░░░░░░░░░░░░░░░░░░  │
-                            └──────────────────────┘
-```
+![border1](docs/board1.png)
+
+![border2](docs/board2.png)
 
 `detail` is the one at the top of this page.
 

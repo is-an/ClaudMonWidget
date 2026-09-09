@@ -4,18 +4,7 @@
 
 Claude Code 토큰 사용량을 보여주는 Windows 반투명 위젯. 항상 화면 위에 뜬다.
 
-```
-┌─────────────────────────────────┐
-│ ANIN                      [Pro] │
-│ ─────────────────────────────── │
-│ ● 5시간 세션             2h 57m │
-│ 54%                             │
-│ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  │
-│ 6%                        6d 4h │
-│ ▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
-│ 807.1k tok / 399 req / live 2m  │
-└─────────────────────────────────┘
-```
+![detail](docs/detail.png)
 
 설치할 것이 없다. Windows에 기본으로 들어 있는 PowerShell 5.1 + WPF만 쓰고,
 Claude Code가 이미 저장해 둔 인증 토큰을 그대로 쓴다. `npm install`도 별도
@@ -79,6 +68,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 - **Sync now** — 지금 Anthropic에 물어본다. **Refresh now** — 로컬 파일만 다시 읽는다.
 - **Exit**.
 
+![menu](docs/menubar.png)
+
 ## 스킨
 
 뒤에 `1`이 붙은 것은 5시간 세션만, `2`는 7일까지 보여준다. 기본값 `border2`.
@@ -91,19 +82,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install-hook.ps1 -Uninstall
 | `border2` | 270 | 둥근 알약 + 두 막대 |
 | `detail` | 300 | 사용자명 + 구독 배지, 두 막대, 토큰·요청 수, 데이터 출처 |
 
-```
-simple1            simple2
-  ● 54%              ● 54%  │  6%
-  2h 57m             2h 57m │  6d 4h
+![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
-border1                     border2
-┌──────────────────────┐    ┌──────────────────────┐
-│ ● 54%        2h 57m  │    │ ● 54%        2h 57m  │
-│ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │    │ ▓▓▓▓▓▓▓░░░░░░░░░░░░  │
-└──────────────────────┘    │ 6%             6d 4h │
-                            │ ▓░░░░░░░░░░░░░░░░░░  │
-                            └──────────────────────┘
-```
+![border1](docs/board1.png)
+
+![border2](docs/board2.png)
 
 `detail`은 이 문서 맨 위에 있는 것이다.
 
