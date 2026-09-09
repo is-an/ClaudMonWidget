@@ -1,11 +1,11 @@
-<img width="238" height="158" alt="스크린샷 2026-09-09 145419" src="https://github.com/user-attachments/assets/4e3649e2-9dba-4194-ac1b-519337e76910" /># ClaudMonWidget
+# ClaudMonWidget
 
 [English](README.md) · **한국어** · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
 Claude Code 토큰 사용량을 보여주는 Windows 반투명 위젯. 항상 화면 위에 뜬다.
 
 ```
-<img width="238" height="158" alt="스크린샷 2026-09-09 145419" src="https://github.com/user-attachments/assets/2efc6d6a-e28d-45a1-95b5-31b8237f9995" />
+<img width="238" height="158" alt="스크린샷 2026-09-09 145419" src="https://github.com/user-attachments/assets/4e3649e2-9dba-4194-ac1b-519337e76910" />
 
 ```
 
