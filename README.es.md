@@ -14,7 +14,10 @@ Windows, y reutiliza las credenciales que Claude Code ya guardó. Sin
 ## Instalación
 
 Windows 10/11 con Claude Code instalado y con la sesión iniciada: ese es todo el
-requisito.
+requisito (o el CLI de OpenAI Codex, para el modo Codex). El widget solo lee
+archivos que Claude Code/Codex escriben ellos mismos: hay que haber usado uno
+de los dos para que aparezcan números, y el token OAuth necesita que Claude
+Code se ejecute de vez en cuando para renovarse.
 
 ```powershell
 git clone https://github.com/is-an/ClaudMonWidget.git

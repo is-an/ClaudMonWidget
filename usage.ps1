@@ -254,6 +254,185 @@ function Get-ClaudeUsage {
     return $result
 }
 
+# --- Codex ----------------------------------------------------------------
+# OpenAI's Codex CLI writes an append-only rollout log per session under
+# ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl. Every turn it records a
+# "token_count" event whose "rate_limits" block carries the same shape of
+# numbers Claude's /api/oauth/usage returns:
+#   primary   -> the 5-hour window  (window_minutes 300)
+#   secondary -> the 7-day window   (window_minutes 10080)
+# with used_percent and a unix-seconds resets_at. It is account-global and
+# refreshed on every turn, so no network call is needed - the freshest copy
+# is simply the last such line in the most recently written session file.
+
+function Get-CodexHome {
+    if ($env:CODEX_HOME) { return $env:CODEX_HOME }
+    return (Join-Path $env:USERPROFILE '.codex')
+}
+
+# Codex holds its active rollout log open in a way that blocks a plain
+# File.ReadAllLines ("being used by another process") - unlike Claude's
+# session files. Opening with FileShare.ReadWrite reads it anyway. Returns
+# an empty array on any failure, so a locked or half-written file is just
+# skipped until the next poll.
+function Read-CodexLines {
+    param([string]$Path)
+    try {
+        $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open,
+                  [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            $sr = New-Object System.IO.StreamReader($fs)
+            try { return ($sr.ReadToEnd() -split "`r?`n") } finally { $sr.Dispose() }
+        } finally { $fs.Dispose() }
+    } catch { return @() }
+}
+
+function Get-CodexAccount {
+    param([string]$CodexDir = (Get-CodexHome))
+
+    $a = [pscustomobject]@{ Name = 'Codex'; Email = $null; Plan = $null }
+    try {
+        $sessions = Join-Path $CodexDir 'sessions'
+        if (-not (Test-Path -LiteralPath $sessions)) { return $a }
+        # A freshly started session has no turns yet and so no plan_type line;
+        # walk back from the newest until one does.
+        $recent = Get-ChildItem -LiteralPath $sessions -Recurse -Filter 'rollout-*.jsonl' -File -ErrorAction SilentlyContinue |
+                  Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 5
+        $p = $null
+        foreach ($f in $recent) {
+            $m = [regex]::Matches(((Read-CodexLines $f.FullName) -join "`n"), '"plan_type":\s*"([^"]+)"')
+            if ($m.Count) { $p = $m[$m.Count - 1].Groups[1].Value; break }
+        }
+        if ($p) {
+            $a.Plan = switch ($p) {
+                'free'       { 'Free' }
+                'plus'       { 'Plus' }
+                'pro'        { 'Pro' }
+                'team'       { 'Team' }
+                'business'   { 'Business' }
+                'enterprise' { 'Enterprise' }
+                'edu'        { 'Edu' }
+                default      { (Get-Culture).TextInfo.ToTitleCase($p) }
+            }
+        }
+    } catch { }
+    return $a
+}
+
+function Get-CodexUsage {
+    param(
+        [string]$CodexDir = (Get-CodexHome),
+        [double]$WindowHours = 5,
+        [datetime]$Now = (Get-Date)
+    )
+
+    $nowUtc = $Now.ToUniversalTime()
+
+    $result = [pscustomobject]@{
+        FiveHourPct     = $null
+        FiveHourResets  = $null
+        SevenDayPct     = $null
+        SevenDayResets  = $null
+        Source          = 'none'   # codex | none
+        FetchedAgeMin   = $null
+        WindowStart     = $null
+        WindowTokens    = 0
+        WindowBilled    = 0
+        WindowCacheRead = 0
+        WindowRequests  = 0
+        Error           = $null
+    }
+
+    # Default to a rolling window ending now; a live snapshot below replaces it
+    # with the real reset time while that time is still in the future.
+    $startUtc = $nowUtc.AddHours(-$WindowHours)
+
+    $sessions = Join-Path $CodexDir 'sessions'
+    if (-not (Test-Path -LiteralPath $sessions)) {
+        $result.Error = 'no codex sessions'
+        $result.WindowStart = $startUtc.ToLocalTime()
+        return $result
+    }
+
+    $files = Get-ChildItem -LiteralPath $sessions -Recurse -Filter 'rollout-*.jsonl' -File -ErrorAction SilentlyContinue
+
+    # --- newest rate-limit snapshot ---------------------------------------
+    # Account-global, so only the last such line matters. Check the few most
+    # recently written files and, in each, scan up from the end to its first
+    # rate_limits line - that is the file's newest.
+    $bestTs = [datetime]::MinValue
+    foreach ($f in ($files | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 5)) {
+        $lines = Read-CodexLines $f.FullName
+        for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+            if ($lines[$i] -notmatch '"rate_limits"') { continue }
+            $line = $lines[$i]
+            if ($line -notmatch '"timestamp":\s*"([^"]+)"') { break }
+            $ts = ([datetime]$Matches[1]).ToUniversalTime()
+            if ($ts -gt $bestTs) {
+                $prim = [regex]::Match($line, '"primary":\s*\{[^}]*?"used_percent":\s*([\d.]+)[^}]*?"resets_at":\s*(\d+)')
+                if ($prim.Success) {
+                    $bestTs = $ts
+                    $result.Source = 'codex'
+                    $result.FetchedAgeMin = [math]::Round(($nowUtc - $ts).TotalMinutes, 1)
+                    $result.FiveHourPct    = [double]$prim.Groups[1].Value
+                    $result.FiveHourResets = [datetimeoffset]::FromUnixTimeSeconds([long]$prim.Groups[2].Value).LocalDateTime
+                    $sec = [regex]::Match($line, '"secondary":\s*\{[^}]*?"used_percent":\s*([\d.]+)[^}]*?"resets_at":\s*(\d+)')
+                    if ($sec.Success) {
+                        $result.SevenDayPct    = [double]$sec.Groups[1].Value
+                        $result.SevenDayResets = [datetimeoffset]::FromUnixTimeSeconds([long]$sec.Groups[2].Value).LocalDateTime
+                    }
+                }
+            }
+            break   # only the newest rate_limits line in this file
+        }
+    }
+
+    # Same rule as Claude: trust the reset time while it is in the future;
+    # once it has passed the percentage is from an old window, so withhold it
+    # and fall back to a rolling window.
+    if ($result.FiveHourResets) {
+        $rUtc = ([datetime]$result.FiveHourResets).ToUniversalTime()
+        if ($rUtc -gt $nowUtc) { $startUtc = $rUtc.AddHours(-$WindowHours) }
+        else                   { $result.FiveHourPct = $null }
+    }
+    $result.WindowStart = $startUtc.ToLocalTime()
+
+    # --- our own token tally from the same logs --------------------------
+    # ponytail: sums per-turn last_token_usage deltas; a repeated token_count
+    # event would double-count. The percentage above is the authoritative
+    # number - this is only the tooltip/detail figure, same caveat as Claude.
+    $startLocal = $startUtc.ToLocalTime()
+    foreach ($f in ($files | Where-Object { $_.LastWriteTime -ge $startLocal })) {
+        $lines = Read-CodexLines $f.FullName
+        foreach ($line in $lines) {
+            if ($line -notmatch '"type":"token_count"') { continue }
+            if ($line -notmatch '"timestamp":\s*"([^"]+)"') { continue }
+            $ts = ([datetime]$Matches[1]).ToUniversalTime()
+            if ($ts -lt $startUtc) { continue }
+
+            $lu = [regex]::Match($line, '"last_token_usage":\s*\{([^}]*)\}')
+            if (-not $lu.Success) { continue }
+            $blk = $lu.Groups[1].Value
+
+            $in = 0; $cin = 0; $cw = 0; $out = 0
+            if ($blk -match '"input_tokens":\s*(\d+)')              { $in  = [int]$Matches[1] }
+            if ($blk -match '"cached_input_tokens":\s*(\d+)')       { $cin = [int]$Matches[1] }
+            if ($blk -match '"cache_write_input_tokens":\s*(\d+)')  { $cw  = [int]$Matches[1] }
+            if ($blk -match '"output_tokens":\s*(\d+)')             { $out = [int]$Matches[1] }
+
+            # Codex's input_tokens includes the cached part; subtract it so
+            # "billed" lines up with Claude's (input + output + cache writes).
+            $billed = [math]::Max(0, $in - $cin) + $cw + $out
+            $result.WindowBilled    += $billed
+            $result.WindowCacheRead += $cin
+            $result.WindowTokens    += ($billed + $cin)
+            $result.WindowRequests++
+        }
+    }
+
+    return $result
+}
+
 function Format-Tokens {
     param([double]$N)
     if ($N -ge 1000000) { return ('{0:0.0}M' -f ($N / 1000000)) }
@@ -293,4 +472,6 @@ function Format-Age {
 if ($MyInvocation.InvocationName -ne '.') {
     Get-ClaudeAccount | Format-List
     Get-ClaudeUsage | Format-List
+    Get-CodexAccount | Format-List
+    Get-CodexUsage | Format-List
 }

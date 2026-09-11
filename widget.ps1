@@ -11,8 +11,10 @@
 # which is read as UTF-8 explicitly.
 
 param(
-    [ValidateSet('simple1','simple2','border1','border2','detail')]
-    [string]$Skin
+    [ValidateSet('simple1','simple2','border1','border2','detail','border-both','detail-both')]
+    [string]$Skin,
+    [ValidateSet('claude','codex')]
+    [string]$Tool
 )
 
 Set-StrictMode -Version 2.0
@@ -35,10 +37,12 @@ if ($Standalone) {
 $ConfigPath = Join-Path $PSScriptRoot 'config.json'
 
 # The "1" variants show the 5-hour session only; the "2" variants add the
-# 7-day window. Order here is the order of the right-click menu.
-$Skins = @('simple1','simple2','border1','border2','detail')
+# 7-day window. The "-both" variants stack Claude and Codex in one window and
+# ignore the Tool setting. Order here is the order of the right-click menu.
+$Skins = @('simple1','simple2','border1','border2','detail','border-both','detail-both')
 
 $Default = @{
+    tool        = 'claude'   # claude | codex - which CLI's usage to show
     skin        = 'border2'
     opacity     = 0.92
     left        = -1        # -1 means "not placed yet"
@@ -73,6 +77,34 @@ function Write-Config($c) {
 
 $cfg = Read-Config
 if ($Skin) { $cfg.skin = $Skin }
+if ($Tool) { $cfg.tool = $Tool }
+if ($cfg.tool -ne 'codex') { $cfg.tool = 'claude' }   # unknown name -> default
+
+# The two CLIs expose the same shape of numbers; one pair of readers per tool.
+function Get-Usage {
+    param([double]$WindowHours)
+    if ($cfg.tool -eq 'codex') { return Get-CodexUsage -WindowHours $WindowHours }
+    return Get-ClaudeUsage -WindowHours $WindowHours
+}
+function Get-Account {
+    if ($cfg.tool -eq 'codex') { return Get-CodexAccount }
+    return Get-ClaudeAccount
+}
+
+# Fill a skin's name/plan elements from an account object. Both may be $null -
+# skins that leave them out just get skipped.
+function Set-AccountText($acct, $userEl, $planEl) {
+    if ($userEl) {
+        $who = $acct.Name
+        if (-not $who) { $who = $acct.Email }
+        if (-not $who) { $who = 'not signed in' }
+        $userEl.Text = $who
+        if ($acct.Email) { $userEl.ToolTip = $acct.Email }
+    }
+    if ($planEl) {
+        if ($acct.Plan) { $planEl.Text = $acct.Plan } else { $planEl.Text = '--' }
+    }
+}
 
 $Green = '#4ADE80'
 $Amber = '#FBBF24'
@@ -144,25 +176,26 @@ function Show-Widget([string]$skinName) {
         $win.Top  = -10000
     }
 
-    # Skins are free to omit any of these; every use is null-guarded.
-    $ui = @{}
-    foreach ($n in @('Root','Dot','TxtMain','TxtSub','TxtReset','TxtWeek','TxtWeekReset',
-                     'BarTrack','BarFill','WeekTrack','WeekFill',
-                     'TxtUser','TxtPlan')) {
-        $ui[$n] = $win.FindName($n)
+    # Skins are free to omit any of these; every use is null-guarded. A "-both"
+    # skin carries a second copy of the usage elements with a "2" suffix - the
+    # Codex block - which $ui2 collects.
+    $usageNames = @('Dot','TxtMain','TxtSub','TxtReset','TxtWeek','TxtWeekReset',
+                    'BarTrack','BarFill','WeekTrack','WeekFill','TxtUser','TxtPlan')
+    $ui  = @{ Root = $win.FindName('Root') }
+    $ui2 = @{}
+    foreach ($n in $usageNames) {
+        $ui[$n]  = $win.FindName($n)
+        $ui2[$n] = $win.FindName($n + '2')
     }
+    $both = [bool]$ui2.TxtMain
 
-    # The account does not change while the widget runs, so read it once.
-    $acct = Get-ClaudeAccount
-    if ($ui.TxtUser) {
-        $who = $acct.Name
-        if (-not $who) { $who = $acct.Email }
-        if (-not $who) { $who = 'not signed in' }
-        $ui.TxtUser.Text = $who
-        if ($acct.Email) { $ui.TxtUser.ToolTip = $acct.Email }
-    }
-    if ($ui.TxtPlan) {
-        if ($acct.Plan) { $ui.TxtPlan.Text = $acct.Plan } else { $ui.TxtPlan.Text = '--' }
+    # The account does not change while the widget runs, so read it once. In a
+    # both skin the first block is always Claude, the second always Codex.
+    if ($both) {
+        Set-AccountText (Get-ClaudeAccount) $ui.TxtUser  $ui.TxtPlan
+        Set-AccountText (Get-CodexAccount)  $ui2.TxtUser $ui2.TxtPlan
+    } else {
+        Set-AccountText (Get-Account) $ui.TxtUser $ui.TxtPlan
     }
 
     # Everything the event handlers below have to share and mutate lives here.
@@ -173,6 +206,8 @@ function Show-Widget([string]$skinName) {
         Relaunch      = $false
         SyncNote      = ''
         SyncTimer     = $null
+        Both          = $both
+        ToolItems     = @()
         SkinItems     = @()
         OpacityItems  = @()
         WindowExpired = $false   # the cached window has rolled over; re-sync
@@ -182,61 +217,80 @@ function Show-Widget([string]$skinName) {
     # DragMove throws if the button is already released by the time it runs.
     $win.Add_MouseLeftButtonDown({ try { $win.DragMove() } catch { } }.GetNewClosure())
 
+    # --- paint one usage result into one block of elements -----------------
+    # $e is a hashtable keyed by the un-suffixed element names ($ui or $ui2).
+    # $primary is the Claude/5-hour block whose rollover drives the re-sync.
+    $paint = {
+        param($u, $e, $primary)
+
+        $pct = $u.FiveHourPct
+        if ($primary) { $state.WindowExpired = ($null -eq $pct) }
+
+        $color = Get-StateColor $pct
+        Set-Brush $e.Dot $color
+        Set-Brush $e.BarFill $color
+
+        if ($null -ne $pct) {
+            if ($e.TxtMain) { $e.TxtMain.Text = ('{0:0}%' -f $pct) }
+        } else {
+            # An expired window: show our own tally, never dressed as a percent.
+            if ($e.TxtMain) { $e.TxtMain.Text = (Format-Tokens $u.WindowBilled) }
+        }
+
+        if ($e.BarFill -and $e.BarTrack) {
+            $w = $e.BarTrack.ActualWidth
+            if ($w -gt 0) {
+                $frac = 0
+                if ($null -ne $pct) { $frac = [math]::Min(1.0, $pct / 100.0) }
+                $e.BarFill.Width = $w * $frac
+            }
+        }
+
+        if ($e.TxtReset) { $e.TxtReset.Text = Format-Remaining $u.FiveHourResets }
+
+        if ($e.TxtWeek) {
+            if ($null -ne $u.SevenDayPct) { $e.TxtWeek.Text = ('{0:0}%' -f $u.SevenDayPct) }
+            else { $e.TxtWeek.Text = '--' }
+        }
+        if ($e.TxtWeekReset) { $e.TxtWeekReset.Text = Format-Remaining $u.SevenDayResets }
+        if ($e.WeekFill -and $e.WeekTrack -and $null -ne $u.SevenDayPct) {
+            $w = $e.WeekTrack.ActualWidth
+            if ($w -gt 0) { $e.WeekFill.Width = $w * [math]::Min(1.0, $u.SevenDayPct / 100.0) }
+        }
+
+        if ($e.TxtSub) {
+            # The sync note is about the Anthropic call, so it belongs only on
+            # the Claude block.
+            $tail = ''
+            if ($primary) { $tail = $state.SyncNote }
+            if (-not $tail) { $tail = ('{0} {1}' -f $u.Source, (Format-Age $u.FetchedAgeMin)) }
+            $e.TxtSub.Text = ('{0} tok / {1} req / {2}' -f `
+                (Format-Tokens $u.WindowBilled), $u.WindowRequests, $tail)
+        }
+    }.GetNewClosure()
+
     # --- redraw from local files (cheap, runs every pollSeconds) ---
     $refresh = {
+        if ($state.Both) {
+            $c = $null; $x = $null
+            try { $c = Get-ClaudeUsage -WindowHours ([double]$cfg.windowHours) } catch { }
+            try { $x = Get-CodexUsage  -WindowHours ([double]$cfg.windowHours) } catch { }
+            if ($c) { & $paint $c $ui  $true  } elseif ($ui.TxtMain)  { $ui.TxtMain.Text  = '!' }
+            if ($x) { & $paint $x $ui2 $false } elseif ($ui2.TxtMain) { $ui2.TxtMain.Text = '!' }
+            $cp = $(if ($c -and $null -ne $c.FiveHourPct) { '{0:0}%' -f $c.FiveHourPct } else { '--' })
+            $xp = $(if ($x -and $null -ne $x.FiveHourPct) { '{0:0}%' -f $x.FiveHourPct } else { '--' })
+            $win.ToolTip = ('claude {0}   codex {1}' -f $cp, $xp)
+            return
+        }
+
         try {
-            $u = Get-ClaudeUsage -WindowHours ([double]$cfg.windowHours)
+            $u = Get-Usage -WindowHours ([double]$cfg.windowHours)
         } catch {
             if ($ui.TxtMain) { $ui.TxtMain.Text = '!' }
             return
         }
 
-        $pct = $u.FiveHourPct
-        # No percentage means the cached reset time has passed: a new 5-hour
-        # window has begun and only the server knows its numbers. The poll tick
-        # reads this and pulls a fresh one instead of leaving the widget grey
-        # until the next scheduled sync.
-        $state.WindowExpired = ($null -eq $pct)
-
-        $color = Get-StateColor $pct
-        Set-Brush $ui.Dot $color
-        Set-Brush $ui.BarFill $color
-
-        if ($null -ne $pct) {
-            if ($ui.TxtMain) { $ui.TxtMain.Text = ('{0:0}%' -f $pct) }
-        } else {
-            # Whatever we have is from an expired window, so show our own tally
-            # instead and never dress it up as a percentage.
-            if ($ui.TxtMain) { $ui.TxtMain.Text = (Format-Tokens $u.WindowBilled) }
-        }
-
-        if ($ui.BarFill -and $ui.BarTrack) {
-            $w = $ui.BarTrack.ActualWidth
-            if ($w -gt 0) {
-                $frac = 0
-                if ($null -ne $pct) { $frac = [math]::Min(1.0, $pct / 100.0) }
-                $ui.BarFill.Width = $w * $frac
-            }
-        }
-
-        if ($ui.TxtReset) { $ui.TxtReset.Text = Format-Remaining $u.FiveHourResets }
-
-        if ($ui.TxtWeek) {
-            if ($null -ne $u.SevenDayPct) { $ui.TxtWeek.Text = ('{0:0}%' -f $u.SevenDayPct) }
-            else { $ui.TxtWeek.Text = '--' }
-        }
-        if ($ui.TxtWeekReset) { $ui.TxtWeekReset.Text = Format-Remaining $u.SevenDayResets }
-        if ($ui.WeekFill -and $ui.WeekTrack -and $null -ne $u.SevenDayPct) {
-            $w = $ui.WeekTrack.ActualWidth
-            if ($w -gt 0) { $ui.WeekFill.Width = $w * [math]::Min(1.0, $u.SevenDayPct / 100.0) }
-        }
-
-        if ($ui.TxtSub) {
-            $tail = $state.SyncNote
-            if (-not $tail) { $tail = ('{0} {1}' -f $u.Source, (Format-Age $u.FetchedAgeMin)) }
-            $ui.TxtSub.Text = ('{0} tok / {1} req / {2}' -f `
-                (Format-Tokens $u.WindowBilled), $u.WindowRequests, $tail)
-        }
+        & $paint $u $ui $true
 
         $win.ToolTip = ('window from {0}   billed {1}   cache read {2}   source {3}' -f `
             $u.WindowStart.ToString('HH:mm'),
@@ -257,6 +311,10 @@ function Show-Widget([string]$skinName) {
     # looking healthy.
     $doSync = {
         param([int]$MinAgeSeconds)
+        # Codex writes its rate limits to the session log every turn, so there
+        # is nothing to fetch - just redraw from the files. A both skin always
+        # shows Claude too, so it still needs the sync.
+        if ($cfg.tool -eq 'codex' -and -not $state.Both) { $state.SyncNote = ''; & $refresh; return }
         $status = Sync-ClaudeUsage -MinAgeSeconds $MinAgeSeconds
         if ($status -eq 'ok') { $state.SyncNote = '' } else { $state.SyncNote = $status }
         & $refresh
@@ -287,6 +345,27 @@ function Show-Widget([string]$skinName) {
 
     # --- context menu ---
     $menu = New-Object System.Windows.Controls.ContextMenu
+
+    # Switching tool rebuilds the window - the account line and every number
+    # come from the other source - so it relaunches like a skin change.
+    foreach ($t in @('claude','codex')) {
+        $name = $t
+        $mi = Add-MenuItem $menu "Tool: $name" ({
+            param($item, $e)
+            Set-OnlyChecked $state.ToolItems $item
+            if ($cfg.tool -ne $name) {
+                $cfg.tool = $name
+                $state.Relaunch = $true
+                $win.Close()
+            }
+        }.GetNewClosure())
+        $mi.IsCheckable = $true
+        $mi.IsChecked = ($cfg.tool -eq $name)
+        # A both skin shows Claude and Codex regardless, so the choice is moot.
+        $mi.IsEnabled = -not $state.Both
+        $state.ToolItems += $mi
+    }
+    Add-Separator $menu
 
     foreach ($s in $Skins) {
         $name = $s

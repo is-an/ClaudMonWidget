@@ -11,7 +11,10 @@ Claude Code 已经保存好的凭据。不需要 `npm install`，也不需要另
 
 ## 安装
 
-Windows 10/11，装好 Claude Code 并已登录，前提条件就这些。
+Windows 10/11，装好 Claude Code 并已登录，前提条件就这些(Codex 模式则需要
+OpenAI Codex CLI)。小组件只读取 Claude Code / Codex 自己写的文件——必须
+实际使用过其中一个才会显示数字，OAuth 令牌也要 Claude Code 时不时运行一下
+才能刷新。
 
 ```powershell
 git clone https://github.com/is-an/ClaudMonWidget.git

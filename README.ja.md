@@ -12,7 +12,10 @@ Claude Code の使用量を表示する、半透明で常に最前面の Windows
 
 ## インストール
 
-Windows 10/11 に Claude Code が入っていてログイン済みなら、前提はそれだけです。
+Windows 10/11 に Claude Code が入っていてログイン済みなら、前提はそれだけです
+(Codex モードなら OpenAI Codex CLI)。ウィジェットは Claude Code / Codex 自身が
+書いたファイルしか読みません — どちらかを実際に使わないと数値は出ませんし、
+OAuth トークンも Claude Code をたまに実行しないと更新されません。
 
 ```powershell
 git clone https://github.com/is-an/ClaudMonWidget.git

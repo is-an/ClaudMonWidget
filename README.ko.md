@@ -12,7 +12,10 @@ Claude Code가 이미 저장해 둔 인증 토큰을 그대로 쓴다. `npm inst
 
 ## 설치
 
-Windows 10/11 + Claude Code가 설치되어 로그인된 상태면 준비 끝이다.
+Windows 10/11 + Claude Code가 설치되어 로그인된 상태면 준비 끝이다 (Codex 모드는
+OpenAI Codex CLI). 위젯은 Claude Code/Codex가 직접 쓴 파일만 읽는다 — 둘 중
+하나를 실제로 써야 숫자가 뜨고, OAuth 토큰도 Claude Code를 가끔 실행해야
+갱신된다.
 
 ```powershell
 git clone https://github.com/is-an/ClaudMonWidget.git

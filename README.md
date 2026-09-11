@@ -2,7 +2,8 @@
 
 **English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
-A translucent, always-on-top Windows widget showing your Claude Code usage.
+A translucent, always-on-top Windows widget showing your Claude Code — or
+OpenAI Codex CLI — usage.
 
 ![detail](docs/detail.png)
 
@@ -13,7 +14,10 @@ install`, no separate sign-in.
 ## Install
 
 Windows 10/11 with Claude Code installed and signed in is the whole
-prerequisite.
+prerequisite (OpenAI Codex CLI instead, for Codex mode). The widget only
+reads files Claude Code/Codex write themselves — it shows nothing new until
+you actually use one, and its OAuth token needs Claude Code to run once in a
+while to stay refreshed.
 
 ```powershell
 git clone https://github.com/is-an/ClaudMonWidget.git
@@ -67,6 +71,8 @@ The widget outlives Claude Code — close it with `Exit` in its own menu.
 Drag to move. Hover for a tooltip with the window start and token breakdown.
 Right-click for the menu:
 
+- **Tool** — `claude` or `codex`. Switches the whole widget to that CLI's
+  usage; the choice is saved.
 - **Skin** and **Opacity** — one selection each.
 - **Always on top**, **Auto sync** — toggles.
 - **Sync now** — ask Anthropic immediately. **Refresh now** — re-read local files.
@@ -86,6 +92,11 @@ A trailing `1` shows the 5-hour session only; `2` adds the 7-day window.
 | `border1` | 270 | Rounded pill with the 5-hour bar |
 | `border2` | 270 | Rounded pill with both bars |
 | `detail` | 300 | Account name and plan badge, both bars, token and request counts, data source |
+| `border-both` | 270 | `border2` stacked twice: Claude on top, Codex below |
+| `detail-both` | 300 | `detail` stacked twice: Claude on top, Codex below |
+
+The two `-both` skins show Claude and Codex at once and ignore the **Tool**
+setting; the others follow it.
 
 ![simple1](docs/simple1.png) ![simple2](docs/simple2.png)
 
@@ -127,6 +138,16 @@ higher and appear only in the tooltip.
 The account name and plan badge come from the `oauthAccount` block of
 `~/.claude.json`, read once with no network call.
 
+**Codex.** With **Tool → codex** the widget reads OpenAI Codex CLI's session
+logs instead — `~/.codex/sessions/**/rollout-*.jsonl` (or `$CODEX_HOME`). Codex
+writes a `rate_limits` block on every turn with the same shape of numbers:
+`primary` is the 5-hour window, `secondary` the 7-day one, each with a
+percentage and a reset time. The freshest one is the last such line in the most
+recently written session file, so there is no network call and nothing to
+sync — the numbers are current whenever Codex is running. The token and request
+counts are our own tally from the same logs. Plan badge comes from `plan_type`
+in that block; there is no account name, so it just reads `Codex`.
+
 The bottom line of `detail` names the source and its age — `live now`,
 `claude-code 2d`, or a failure such as `token expired` or `http 429`. A
 percentage whose `resets_at` has passed belongs to an expired window and is
@@ -143,6 +164,7 @@ the end of a session, so a session in progress has none.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `tool` | `claude` | Which CLI's usage to show: `claude` or `codex` |
 | `skin` | `border2` | Starting skin; an unknown name falls back to the default |
 | `opacity` | `0.92` | Window opacity |
 | `left` / `top` | `-1` | Position; `-1` places it bottom-right |

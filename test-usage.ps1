@@ -144,6 +144,63 @@ Check 'Format-Age hours'   (Format-Age 150)  '3h'
 Check 'Format-Age days'    (Format-Age 2649) '2d'
 Check 'Format-Age null'    (Format-Age $null) 'n/a'
 
+# --- Codex --------------------------------------------------------------
+# Codex CLI writes an append-only rollout log; the newest rate_limits block
+# in the most recently touched file is the live snapshot, and last_token_usage
+# deltas are our own tally.
+$cxDay = Join-Path $root '.codex\sessions\2026\09\09'
+New-Item -ItemType Directory -Path $cxDay -Force | Out-Null
+
+$primReset = [int64]($resetsAt.ToUniversalTime() - [datetime]'1970-01-01').TotalSeconds
+$secReset  = [int64]($now.AddDays(6).ToUniversalTime() - [datetime]'1970-01-01').TotalSeconds
+
+function New-CodexLine {
+    param($Timestamp, $In, $Cached, $CacheWrite, $Out, $Pct)
+    $ts = $Timestamp.ToUniversalTime().ToString('o')
+    '{"timestamp":"' + $ts + '","type":"event_msg","payload":{"type":"token_count",' +
+    '"info":{"last_token_usage":{"input_tokens":' + $In + ',"cached_input_tokens":' + $Cached +
+    ',"cache_write_input_tokens":' + $CacheWrite + ',"output_tokens":' + $Out + ',"total_tokens":0}},' +
+    '"rate_limits":{"primary":{"used_percent":' + $Pct + ',"window_minutes":300,"resets_at":' + $primReset + '},' +
+    '"secondary":{"used_percent":14.0,"window_minutes":10080,"resets_at":' + $secReset + '},' +
+    '"plan_type":"plus"}}}'
+}
+
+# Written in append (chronological) order: the oldest is before the window.
+$cxLines = @(
+    '{"type":"session_meta","payload":{"cli_version":"0.154.0"}}'
+    New-CodexLine $outside 999 0 0 999 90.0
+    New-CodexLine $inside  100 40 5 20  30.0
+    New-CodexLine $now.AddMinutes(-30) 200 100 0 10 36.0   # newest -> the snapshot
+)
+$cxLog = Join-Path $cxDay 'rollout-2026-09-09T09-00-00-test.jsonl'
+Set-Content -LiteralPath $cxLog -Value $cxLines -Encoding UTF8
+(Get-Item -LiteralPath $cxLog).LastWriteTime = $now
+
+$cx = Get-CodexUsage -CodexDir (Join-Path $root '.codex') -Now $now
+Check 'codex Source'          $cx.Source          'codex'
+Check 'codex FiveHourPct'     $cx.FiveHourPct     36      # newest line wins
+Check 'codex SevenDayPct'     $cx.SevenDayPct     14
+Check 'codex FetchedAgeMin'   $cx.FetchedAgeMin   30
+Check 'codex FiveHourResets'  $cx.FiveHourResets.ToUniversalTime() $resetsAt.ToUniversalTime()
+Check 'codex WindowStart'     $cx.WindowStart.ToUniversalTime()    $now.AddHours(-3).ToUniversalTime()
+Check 'codex WindowRequests'  $cx.WindowRequests  2       # the pre-window line is excluded
+Check 'codex WindowBilled'    $cx.WindowBilled    195     # (100-40+5+20) + (200-100+0+10)
+Check 'codex WindowCacheRead' $cx.WindowCacheRead 140     # 40 + 100
+Check 'codex WindowTokens'    $cx.WindowTokens    335
+
+# Once the reset time has passed the percentage is from an old window.
+$cxStale = Get-CodexUsage -CodexDir (Join-Path $root '.codex') -Now $now.AddHours(3)
+Check 'codex stale pct withheld' $cxStale.FiveHourPct $null
+
+$cxa = Get-CodexAccount -CodexDir (Join-Path $root '.codex')
+Check 'codex account name' $cxa.Name 'Codex'
+Check 'codex account plan' $cxa.Plan 'Plus'
+
+# No ~/.codex at all is not an error worth blanking on - just no numbers.
+$cxNone = Get-CodexUsage -CodexDir (Join-Path $root 'no-codex-here') -Now $now
+Check 'codex missing dir Source' $cxNone.Source 'none'
+Check 'codex missing dir Error'  $cxNone.Error  'no codex sessions'
+
 Remove-Item -LiteralPath $root -Recurse -Force
 
 if ($fail.Count) {

@@ -16,10 +16,11 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 . (Join-Path $PSScriptRoot 'widget.ps1')
 
-# Dot-sourcing drags in widget.ps1's own -Skin parameter, empty and still
-# carrying its ValidateSet. GetNewClosure() snapshots every visible variable and
-# re-applies that attribute, which then rejects the empty value. Drop it.
-Remove-Variable Skin -ErrorAction SilentlyContinue
+# Dot-sourcing drags in widget.ps1's own -Skin / -Tool parameters, empty and
+# still carrying their ValidateSet. GetNewClosure() snapshots every visible
+# variable and re-applies that attribute, which then rejects the empty value.
+# Drop them.
+Remove-Variable Skin, Tool -ErrorAction SilentlyContinue
 
 $state = @{ Items = @(); Chose = $null }
 $menu = New-Object System.Windows.Controls.ContextMenu

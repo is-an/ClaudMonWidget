@@ -252,6 +252,8 @@ ASCII만 쓴다. PowerShell 5.1은 BOM 없는 스크립트를 ANSI로 읽어서 
 
 `Window`에는 `WindowStyle="None"`, `AllowsTransparency="True"`, `Background="Transparent"`가 필요하다. 높이는 `SizeToContent="Height"`. 메뉴에 올리려면 `widget.ps1`의 `$Skins` 배열과 `-Skin`의 `ValidateSet`에 이름을 추가한다.
 
+이름 끝에 `2`를 붙인 두 번째 세트(`TxtMain2`, `BarFill2`, `TxtUser2` …)를 넣으면 Claude·Codex를 한 창에 같이 그리는 스킨이 된다. `widget.ps1`은 `TxtMain2` 유무로 이 모드를 감지하고, 첫 세트는 항상 Claude, `2` 세트는 항상 Codex로 채운다. 이때 **Tool** 메뉴는 무시된다. `border-both`, `detail-both`이 그 예다.
+
 ## 11. PowerShell 5.1에서 밟은 지뢰
 
 전부 오류 없이 조용히 틀린 값을 내놓는 종류다. 그래서 하나하나 테스트로 고정했다.
